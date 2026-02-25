@@ -35,7 +35,7 @@ Current status and next priorities for `git-semantic-bun`.
 - [ ] Evaluate optional ANN backend for very large repositories
 - [ ] Add perf CI baseline + regression guardrails
 
-Details and targets: [`docs/v0.4-performance-plan.md`](./docs/v0.4-performance-plan.md)
+Details and targets: [`docs/plan/v0.4-performance.md`](./docs/plan/v0.4-performance.md)
 
 ### 2) Multi-model workflows
 
@@ -51,6 +51,6 @@ Details and targets: [`docs/v0.4-performance-plan.md`](./docs/v0.4-performance-p
 
 ## Docs
 
-- Historical implementation plan: [`docs/v0.3.0-plan.md`](./docs/v0.3.0-plan.md)
+- Historical implementation plan: [`docs/plan/v0.3.0.md`](./docs/plan/v0.3.0.md)
 - Compact index reference: [`docs/compact-index.md`](./docs/compact-index.md)
 - Documentation map: [`docs/README.md`](./docs/README.md)

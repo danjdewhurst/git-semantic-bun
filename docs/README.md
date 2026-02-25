@@ -7,9 +7,9 @@
 
 ## Planning
 
-- [`v0.4-performance-plan.md`](./v0.4-performance-plan.md)
+- [`plan/v0.4-performance.md`](./plan/v0.4-performance.md)
   - Active performance execution plan for v0.4.
-- [`v0.3.0-plan.md`](./v0.3.0-plan.md)
+- [`plan/v0.3.0.md`](./plan/v0.3.0.md)
   - Archived implementation plan for v0.3.0 (delivered).
 
 ## Project-level references
