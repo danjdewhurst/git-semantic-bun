@@ -38,7 +38,7 @@ Current priorities for `git-semantic-bun`.
 - [x] Optimise scoring hot path to reduce allocation/GC pressure
 - [x] Prototype memory-mapped/lazy vector loading
 - [x] Optional ANN backend (usearch HNSW) for very large repositories
-- [ ] Add perf CI baseline + regression guardrails
+- [x] Add perf CI baseline + regression guardrails
 
 Details and targets: [`docs/plans/v0.4-performance.md`](./docs/plans/v0.4-performance.md)
 

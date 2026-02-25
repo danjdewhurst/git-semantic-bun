@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "dataset": {
+    "commitCount": 5000,
+    "dimension": 32,
+    "coldIterations": 9,
+    "warmIterations": 30,
+    "indexLoadIterations": 20
+  },
+  "thresholds": {
+    "coldP50Pct": 250,
+    "coldP95Pct": 250,
+    "warmP50Pct": 300,
+    "warmP95Pct": 300,
+    "indexLoadP50Pct": 250
+  },
+  "metrics": {
+    "cold": {
+      "count": 9,
+      "minMs": 6.814,
+      "maxMs": 26.792,
+      "meanMs": 10.3,
+      "p50Ms": 8.676,
+      "p95Ms": 26.792
+    },
+    "warm": {
+      "count": 30,
+      "minMs": 1.415,
+      "maxMs": 2.617,
+      "meanMs": 1.561,
+      "p50Ms": 1.481,
+      "p95Ms": 2.285
+    },
+    "indexLoad": {
+      "count": 20,
+      "minMs": 3.54,
+      "maxMs": 6.65,
+      "meanMs": 4.605,
+      "p50Ms": 4.004,
+      "p95Ms": 6.254
+    }
+  }
+}

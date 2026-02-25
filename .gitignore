@@ -4,3 +4,4 @@ dist/
 .git/semantic-index/cache/
 *.log
 .tools/
+perf-artifacts/
