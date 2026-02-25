@@ -8,6 +8,8 @@ export interface RepoPaths {
   semanticDir: string;
   cacheDir: string;
   indexPath: string;
+  compactMetaPath: string;
+  compactVectorPath: string;
   metadataPath: string;
 }
 
@@ -32,6 +34,8 @@ export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
     semanticDir,
     cacheDir,
     indexPath: path.join(semanticDir, "index.json"),
+    compactMetaPath: path.join(semanticDir, "index.meta.json"),
+    compactVectorPath: path.join(semanticDir, "index.vec.f32"),
     metadataPath: path.join(cacheDir, "metadata.json")
   };
 }
