@@ -164,6 +164,10 @@ Indexes only commits newer than the latest indexed commit.
 
 Shows index count, model, size, and timestamps.
 
+### `gsb benchmark <query> [filters]`
+
+Benchmarks ranking performance (baseline full-sort vs optimised heap top-k) using the current index.
+
 ## Examples
 
 ```bash

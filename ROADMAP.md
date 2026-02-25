@@ -35,7 +35,7 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 ### 2.1 Faster search path
 - [x] Pre-normalise vectors at index time.
 - [x] Add efficient top-k selection (avoid full sort for large sets).
-- [ ] Benchmark baseline vs optimised path.
+- [x] Benchmark baseline vs optimised path.
 
 ### 2.2 Index storage improvements
 - [ ] Design compact index format (binary vectors + JSON metadata sidecar).

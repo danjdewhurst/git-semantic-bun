@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "commander";
+import { runBenchmark } from "./commands/benchmark.ts";
 import { runIndex } from "./commands/index.ts";
 import { runInit } from "./commands/init.ts";
 import { runSearch } from "./commands/search.ts";
@@ -129,6 +130,40 @@ program
   .action(async () => {
     await runStats();
   });
+
+program
+  .command("benchmark")
+  .description("Benchmark baseline full sort vs optimised heap top-k ranking")
+  .argument("<query>", "Natural language query")
+  .option("--author <author>", "Filter by author substring")
+  .option("--after <date>", "Filter commits after this date", toDateParser("--after"))
+  .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
+  .option("--file <path>", "Filter commits touching file path substring")
+  .option("-n, --limit <count>", "Max results", limitParser, DEFAULT_LIMIT)
+  .option("-i, --iterations <count>", "Benchmark iterations", limitParser, 20)
+  .option("--semantic-weight <weight>", "Semantic score weight (0..1)", toWeightParser("--semantic-weight"), 0.75)
+  .option("--lexical-weight <weight>", "Lexical score weight (0..1)", toWeightParser("--lexical-weight"), 0.2)
+  .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
+  .option("--no-recency-boost", "Disable recency scoring boost")
+  .action(
+    async (
+      query: string,
+      options: {
+        author?: string;
+        after?: Date;
+        before?: Date;
+        file?: string;
+        limit: number;
+        iterations: number;
+        semanticWeight: number;
+        lexicalWeight: number;
+        recencyWeight: number;
+        recencyBoost: boolean;
+      },
+    ) => {
+      await runBenchmark(query, options);
+    },
+  );
 
 program.showHelpAfterError();
 
