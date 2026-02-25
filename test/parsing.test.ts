@@ -33,8 +33,10 @@ describe("parsing helpers", () => {
     expect(parseSearchOutputFormat("json")).toBe("json");
   });
 
-  it("rejects invalid output format option", () => {
-    expect(() => parseSearchOutputFormat("yaml")).toThrow();
+  it("accepts plugin-provided format names", () => {
+    // Plugin-extensible: any string is now a valid format name
+    expect(parseSearchOutputFormat("csv")).toBe("csv");
+    expect(parseSearchOutputFormat("yaml")).toBe("yaml");
   });
 
   it("parses weight option", () => {

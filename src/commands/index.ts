@@ -8,6 +8,7 @@ import { ensureIndexArtifactDirectory, resolveModelIndexPaths } from "../core/mo
 import { validateBatchSize } from "../core/parsing.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
 import { filterCommitsByPatterns, loadGsbIgnorePatterns } from "../core/patterns.ts";
+import { type PluginRegistry, runHookChain } from "../core/plugin-registry.ts";
 
 export interface IndexOptions {
   full: boolean;
@@ -18,7 +19,15 @@ export interface IndexOptions {
   vectorDtype?: "f32" | "f16";
 }
 
-export async function runIndex(options: IndexOptions): Promise<void> {
+export interface RunIndexContext {
+  registry?: PluginRegistry | undefined;
+}
+
+export async function runIndex(
+  options: IndexOptions,
+  context: RunIndexContext = {},
+): Promise<void> {
+  const { registry } = context;
   const paths = resolveRepoPaths();
   ensureSemanticDirectories(paths);
 
@@ -51,13 +60,38 @@ export async function runIndex(options: IndexOptions): Promise<void> {
     );
   }
 
-  console.log(`Indexing ${filteredCommits.length} commits with model ${modelName}`);
-  const embedder = await createEmbedder(modelName, paths.cacheDir);
-  const indexedCommits = await embedCommits(filteredCommits, embedder, {
+  // Run preIndex hooks — plugins can transform the commit list
+  let commitsToIndex = filteredCommits;
+  if (registry) {
+    const hookResult = await runHookChain(registry, "preIndex", {
+      point: "preIndex",
+      commits: [...commitsToIndex],
+    });
+    commitsToIndex = hookResult.commits;
+  }
+
+  console.log(`Indexing ${commitsToIndex.length} commits with model ${modelName}`);
+
+  // Try plugin embedder first, fall back to built-in
+  const pluginEmbedder = registry?.getEmbedder(modelName, paths.cacheDir);
+  const embedder = pluginEmbedder
+    ? await pluginEmbedder
+    : await createEmbedder(modelName, paths.cacheDir);
+
+  let indexedCommits = await embedCommits(commitsToIndex, embedder, {
     batchSize,
     includePatch: options.full,
     progressLabel: "Embedding commits",
   });
+
+  // Run postIndex hooks — plugins can transform indexed commits
+  if (registry) {
+    const hookResult = await runHookChain(registry, "postIndex", {
+      point: "postIndex",
+      indexed: [...indexedCommits],
+    });
+    indexedCommits = hookResult.indexed;
+  }
 
   const now = new Date().toISOString();
   const targetPaths = resolveModelIndexPaths(paths, modelName);

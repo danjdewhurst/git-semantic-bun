@@ -1,13 +1,22 @@
 import { runDoctorChecks, runDoctorFixes } from "../core/doctor.ts";
 import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
+import type { PluginRegistry } from "../core/plugin-registry.ts";
 
 export interface DoctorOptions {
   model?: string;
   fix?: boolean;
 }
 
-export async function runDoctor(options: DoctorOptions = {}): Promise<void> {
+export interface RunDoctorContext {
+  registry?: PluginRegistry | undefined;
+}
+
+export async function runDoctor(
+  options: DoctorOptions = {},
+  context: RunDoctorContext = {},
+): Promise<void> {
+  const { registry } = context;
   const paths = resolveRepoPaths();
   const targetPaths = options.model
     ? resolveModelIndexPaths(paths, options.model)
@@ -42,6 +51,17 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<void> {
       failures += 1;
     }
     console.log(`${icon.padEnd(4)} ${check.name.padEnd(20)} ${check.detail}`);
+  }
+
+  // Show loaded plugins
+  if (registry && registry.size > 0) {
+    console.log("");
+    console.log("Plugins:");
+    for (const plugin of registry.listPlugins()) {
+      const extensions =
+        plugin.extensionPoints.length > 0 ? plugin.extensionPoints.join(", ") : "none";
+      console.log(`  ${plugin.name} v${plugin.version} (${plugin.source}) — ${extensions}`);
+    }
   }
 
   if (failures > 0) {

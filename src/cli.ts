@@ -18,6 +18,10 @@ import {
   parseVectorDtypeOption,
   parseWeightOption,
 } from "./core/parsing.ts";
+import { resolveRepoPaths } from "./core/paths.ts";
+import { loadGsbConfig } from "./core/plugin-config.ts";
+import { discoverAndLoadPlugins } from "./core/plugin-loader.ts";
+import { type PluginRegistry, buildRegistry } from "./core/plugin-registry.ts";
 
 function toDateParser(flagName: string): (value: string) => Date {
   return (value) => {
@@ -56,7 +60,8 @@ const program = new Command();
 program
   .name("gsb")
   .description("Local semantic git commit search CLI with Bun + transformers.js")
-  .version("0.3.0");
+  .version("0.3.0")
+  .option("--no-plugins", "Disable all plugin loading");
 
 program
   .command("init")
@@ -108,7 +113,7 @@ program
         indexOptions.model = options.model;
       }
 
-      await runIndex(indexOptions);
+      await runIndex(indexOptions, { registry });
     },
   );
 
@@ -189,7 +194,7 @@ program
         throw new InvalidArgumentError("Query is required. Provide <query> or --query-file.");
       }
 
-      await runSearch(resolvedQuery, options);
+      await runSearch(resolvedQuery, options, { registry });
     },
   );
 
@@ -240,7 +245,7 @@ program
       jsonl: boolean;
       strategy: "auto" | "exact" | "ann";
     }) => {
-      await runServe(options);
+      await runServe(options, { registry });
     },
   );
 
@@ -307,7 +312,7 @@ program
   .option("--model <name>", "Model index to check/fix (defaults to metadata model)")
   .option("--fix", "Attempt safe non-destructive repairs", false)
   .action(async (options: { model?: string; fix: boolean }) => {
-    await runDoctor(options);
+    await runDoctor(options, { registry });
   });
 
 program
@@ -380,8 +385,46 @@ program
 
 program.showHelpAfterError();
 
-program.parseAsync(process.argv).catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : String(error);
-  console.error(`Error: ${message}`);
-  process.exitCode = 1;
-});
+let registry: PluginRegistry | undefined;
+
+async function loadPlugins(): Promise<PluginRegistry | undefined> {
+  const opts = program.opts<{ plugins: boolean }>();
+  if (!opts.plugins) {
+    return undefined;
+  }
+
+  try {
+    const paths = resolveRepoPaths();
+    const config = loadGsbConfig(paths.repoRoot);
+    const loaded = await discoverAndLoadPlugins(paths.repoRoot, config);
+
+    if (loaded.length === 0) {
+      return undefined;
+    }
+
+    const reg = await buildRegistry(
+      loaded,
+      paths.repoRoot,
+      paths.semanticDir,
+      paths.cacheDir,
+      config,
+    );
+
+    reg.registerCommands(program);
+    return reg;
+  } catch {
+    // Plugin loading should never prevent CLI from running
+    return undefined;
+  }
+}
+
+loadPlugins()
+  .then((reg) => {
+    registry = reg;
+    return program.parseAsync(process.argv);
+  })
+  .catch((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Error: ${message}`);
+    process.exitCode = 1;
+  });

@@ -31,14 +31,12 @@ export function validateBatchSize(value: number): number {
   return value;
 }
 
-export type SearchOutputFormat = "text" | "markdown" | "json";
+export type SearchOutputFormat = "text" | "markdown" | "json" | (string & {});
 
 export function parseSearchOutputFormat(value: string): SearchOutputFormat {
-  if (value === "text" || value === "markdown" || value === "json") {
-    return value;
-  }
-
-  throw new Error(`Invalid format: ${value}. Allowed values: text, markdown, json.`);
+  // Accept any string — plugin-provided formatters can extend the set of valid formats.
+  // Built-in formats are text, markdown, and json.
+  return value;
 }
 
 export type VectorDtypeOption = "f32" | "f16";

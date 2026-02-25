@@ -1,16 +1,16 @@
 {
   "name": "git-semantic-bun",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Local semantic git commit search CLI built with Bun + TypeScript",
   "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin-export.ts"
+  },
   "bin": {
     "gsb": "./src/cli.ts"
   },
-  "files": [
-    "src/",
-    "LICENSE",
-    "README.md"
-  ],
+  "files": ["src/", "LICENSE", "README.md"],
   "scripts": {
     "build": "bun build ./src/cli.ts --outdir dist --target bun",
     "test": "bun test",

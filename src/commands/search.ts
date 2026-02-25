@@ -12,6 +12,9 @@ import {
 import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
+import { type PluginRegistry, runHookChain } from "../core/plugin-registry.ts";
+import type { RankedResult, SearchOutputPayload } from "../core/plugin-types.ts";
+export type { RankedResult, SearchOutputPayload } from "../core/plugin-types.ts";
 import {
   type ScoreWeights,
   combineScores,
@@ -20,7 +23,12 @@ import {
 } from "../core/ranking.ts";
 import { normaliseVector } from "../core/similarity.ts";
 import { selectTopKByMappedScore } from "../core/topk.ts";
-import type { SearchFilters, SearchStrategyName, SemanticIndex } from "../core/types.ts";
+import type {
+  IndexedCommit,
+  SearchFilters,
+  SearchStrategyName,
+  SemanticIndex,
+} from "../core/types.ts";
 import { type AnnIndexHandle, createSearchStrategy } from "../core/vector-search.ts";
 
 export interface SearchOptions {
@@ -69,44 +77,6 @@ function buildNoResultSuggestions(options: SearchOptions, minScore: number): str
 
   suggestions.push("Try broader query terms or remove rare keywords.");
   return suggestions;
-}
-
-interface RankedResult {
-  rank: number;
-  score: number;
-  semanticScore: number;
-  lexicalScore: number;
-  recencyScore: number;
-  hash: string;
-  date: string;
-  author: string;
-  message: string;
-  files: string[];
-  snippet?: string;
-}
-
-export interface SearchOutputPayload {
-  query: string;
-  model: string;
-  format: SearchOutputFormat;
-  explain: boolean;
-  totalIndexedCommits: number;
-  matchedCommits: number;
-  returnedResults: number;
-  scoreWeights: {
-    semantic: number;
-    lexical: number;
-    recency: number;
-    recencyBoostEnabled: boolean;
-  };
-  filters: {
-    author?: string;
-    after?: string;
-    before?: string;
-    file?: string;
-    limit: number;
-  };
-  results: RankedResult[];
 }
 
 function buildPayload(
@@ -234,6 +204,7 @@ export interface SearchExecutionContext {
   lexicalCache?: LexicalCache | undefined;
   strategyName?: SearchStrategyName | undefined;
   annHandle?: AnnIndexHandle | undefined;
+  registry?: PluginRegistry | undefined;
 }
 
 export async function executeSearch(
@@ -241,7 +212,7 @@ export async function executeSearch(
   options: SearchOptions,
   context: SearchExecutionContext,
 ): Promise<SearchOutputPayload | null> {
-  const { index, embedder, repoRoot } = context;
+  const { index, embedder, repoRoot, registry } = context;
   const lexicalCache = context.lexicalCache ?? getLexicalCacheForIndex(index);
 
   if (index.commits.length === 0) {
@@ -275,12 +246,33 @@ export async function executeSearch(
     filters.file = options.file;
   }
 
-  const filtered = applyFilters(index.commits, filters);
+  // Run preSearch hooks — plugins can modify query and filters
+  let effectiveQuery = query;
+  let effectiveFilters = filters;
+  if (registry) {
+    const hookResult = await runHookChain(registry, "preSearch", {
+      point: "preSearch",
+      query: effectiveQuery,
+      filters: effectiveFilters,
+    });
+    effectiveQuery = hookResult.query;
+    effectiveFilters = hookResult.filters;
+  }
+
+  let filtered: IndexedCommit[] = applyFilters(index.commits, effectiveFilters);
+
+  // Apply plugin commit filters
+  if (registry) {
+    for (const pluginFilter of registry.getCommitFilters()) {
+      filtered = pluginFilter.apply(filtered, undefined);
+    }
+  }
+
   if (filtered.length === 0) {
     return null;
   }
 
-  const [queryEmbedding] = await embedder.embedBatch([query]);
+  const [queryEmbedding] = await embedder.embedBatch([effectiveQuery]);
 
   if (!queryEmbedding) {
     throw new Error("Failed to generate query embedding.");
@@ -288,12 +280,16 @@ export async function executeSearch(
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
+  // Try plugin search strategy first, then fall back to built-in
+  const pluginStrategy = registry?.getSearchStrategy(index.commits.length);
   const strategyName = options.strategy ?? context.strategyName ?? "auto";
-  const strategy = createSearchStrategy({
-    strategyName,
-    commitCount: index.commits.length,
-    annHandle: context.annHandle,
-  });
+  const strategy =
+    pluginStrategy ??
+    createSearchStrategy({
+      strategyName,
+      commitCount: index.commits.length,
+      annHandle: context.annHandle,
+    });
 
   // Semantic pre-selection: strategy returns top candidates by embedding similarity.
   // For ANN, we over-fetch so hybrid re-ranking can promote lexical/recency hits.
@@ -301,12 +297,15 @@ export async function executeSearch(
   const semanticCandidates = strategy.search(normalisedQueryEmbedding, filtered, semanticOverfetch);
 
   const lexicalByCommit = bm25ScoresFromCache(
-    query,
+    effectiveQuery,
     lexicalCache,
     filtered.map((commit) => commit.hash),
   );
 
-  // Hybrid re-rank: combine semantic scores with BM25 lexical + recency
+  // Collect plugin scoring signals
+  const pluginSignals = registry?.getScoringSignals() ?? [];
+
+  // Hybrid re-rank: combine semantic scores with BM25 lexical + recency + plugin signals
   const reranked = semanticCandidates
     .map((candidate) => {
       const commit = filtered[candidate.index];
@@ -314,7 +313,12 @@ export async function executeSearch(
 
       const lexical = lexicalByCommit.get(commit.hash) ?? 0;
       const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
-      const score = combineScores(candidate.score, lexical, recency, scoreWeights);
+      let score = combineScores(candidate.score, lexical, recency, scoreWeights);
+
+      // Add plugin scoring signals (additive contribution with their default weights)
+      for (const signal of pluginSignals) {
+        score += signal.score(commit, effectiveQuery) * signal.defaultWeight;
+      }
 
       return {
         hash: commit.hash,
@@ -350,8 +354,8 @@ export async function executeSearch(
       : {}),
   }));
 
-  return buildPayload(
-    query,
+  let payload = buildPayload(
+    effectiveQuery,
     index.modelName,
     format,
     explain,
@@ -359,21 +363,48 @@ export async function executeSearch(
     index.commits.length,
     filtered.length,
     limit,
-    filters,
+    effectiveFilters,
     rankedResults,
   );
+
+  // Run postSearch hooks — plugins can transform results
+  if (registry) {
+    const hookResult = await runHookChain(registry, "postSearch", {
+      point: "postSearch",
+      query: effectiveQuery,
+      results: payload,
+    });
+    payload = hookResult.results as SearchOutputPayload;
+  }
+
+  return payload;
 }
 
-export async function runSearch(query: string, options: SearchOptions): Promise<void> {
+export interface RunSearchContext {
+  registry?: PluginRegistry | undefined;
+}
+
+export async function runSearch(
+  query: string,
+  options: SearchOptions,
+  context: RunSearchContext = {},
+): Promise<void> {
   const { existsSync } = await import("node:fs");
   const { loadAnnIndex } = await import("../core/ann-index.ts");
+
+  const { registry } = context;
 
   const paths = resolveRepoPaths();
   const targetPaths = options.model
     ? resolveModelIndexPaths(paths, options.model)
     : resolveTargetIndexPaths(paths);
   const index = loadIndex(targetPaths.indexPath);
-  const embedder = await createEmbedder(index.modelName, paths.cacheDir);
+
+  // Try plugin embedder first, fall back to built-in
+  const pluginEmbedder = registry?.getEmbedder(index.modelName, paths.cacheDir);
+  const embedder = pluginEmbedder
+    ? await pluginEmbedder
+    : await createEmbedder(index.modelName, paths.cacheDir);
 
   let annHandle: AnnIndexHandle | undefined;
   if (existsSync(targetPaths.annIndexPath)) {
@@ -385,6 +416,7 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     embedder,
     repoRoot: paths.repoRoot,
     annHandle,
+    registry,
   });
 
   if (!payload) {
@@ -430,6 +462,15 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
       console.log(`- ${suggestion}`);
     }
     return;
+  }
+
+  // Check plugin output formatters before built-in renderers
+  if (registry) {
+    const pluginFormatter = registry.getOutputFormatter(payload.format);
+    if (pluginFormatter) {
+      console.log(pluginFormatter.render(payload));
+      return;
+    }
   }
 
   if (payload.format === "json") {

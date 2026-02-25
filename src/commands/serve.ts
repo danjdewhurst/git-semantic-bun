@@ -6,11 +6,16 @@ import { loadIndex } from "../core/index-store.ts";
 import { getLexicalCacheForIndex } from "../core/lexical-cache.ts";
 import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
+import type { PluginRegistry } from "../core/plugin-registry.ts";
 import type { AnnIndexHandle } from "../core/vector-search.ts";
 import { type SearchOptions, executeSearch } from "./search.ts";
 
 export interface ServeOptions extends SearchOptions {
   jsonl?: boolean;
+}
+
+export interface RunServeContext {
+  registry?: PluginRegistry | undefined;
 }
 
 async function tryLoadAnn(annPath: string, dimension: number): Promise<AnnIndexHandle | undefined> {
@@ -22,13 +27,22 @@ async function tryLoadAnn(annPath: string, dimension: number): Promise<AnnIndexH
   }
 }
 
-export async function runServe(options: ServeOptions): Promise<void> {
+export async function runServe(
+  options: ServeOptions,
+  context: RunServeContext = {},
+): Promise<void> {
+  const { registry } = context;
   const paths = resolveRepoPaths();
   const targetPaths = options.model
     ? resolveModelIndexPaths(paths, options.model)
     : resolveTargetIndexPaths(paths);
   let index = loadIndex(targetPaths.indexPath);
-  let embedder = await createEmbedder(index.modelName, paths.cacheDir);
+
+  const pluginEmbedder = registry?.getEmbedder(index.modelName, paths.cacheDir);
+  let embedder = pluginEmbedder
+    ? await pluginEmbedder
+    : await createEmbedder(index.modelName, paths.cacheDir);
+
   let lexicalCache = getLexicalCacheForIndex(index);
   let annHandle = await tryLoadAnn(targetPaths.annIndexPath, 384);
 
@@ -56,7 +70,10 @@ export async function runServe(options: ServeOptions): Promise<void> {
 
     if (input === ":reload") {
       index = loadIndex(targetPaths.indexPath);
-      embedder = await createEmbedder(index.modelName, paths.cacheDir);
+      const reloadedPluginEmbedder = registry?.getEmbedder(index.modelName, paths.cacheDir);
+      embedder = reloadedPluginEmbedder
+        ? await reloadedPluginEmbedder
+        : await createEmbedder(index.modelName, paths.cacheDir);
       lexicalCache = getLexicalCacheForIndex(index);
       annHandle = await tryLoadAnn(targetPaths.annIndexPath, 384);
       const label = annHandle ? "ann available" : "exact only";
@@ -76,6 +93,7 @@ export async function runServe(options: ServeOptions): Promise<void> {
           repoRoot: paths.repoRoot,
           lexicalCache,
           annHandle,
+          registry,
         },
       );
 
