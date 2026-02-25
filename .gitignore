@@ -3,3 +3,4 @@ dist/
 .git/semantic-index/index.json
 .git/semantic-index/cache/
 *.log
+.tools/

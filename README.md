@@ -155,7 +155,11 @@ bun run lint
 bun run typecheck
 bun test
 bun run build
+bun run toc
 ```
+
+`bun run toc` uses [`go-toc`](https://github.com/danjdewhurst/go-toc) to generate `TOC.md`.
+If `go-toc` is not installed, the project script downloads a local binary into `.tools/bin/`.
 
 ## Docs
 
