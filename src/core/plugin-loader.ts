@@ -85,6 +85,42 @@ function discoverNpmPlugins(repoRoot: string): string[] {
   }
 }
 
+/**
+ * Quick check for any plugin sources without spawning subprocesses.
+ * Returns true if there's any chance plugins exist.
+ */
+export function hasPluginSources(repoRoot: string, config: GsbConfig): boolean {
+  if (config.plugins && config.plugins.length > 0) {
+    return true;
+  }
+
+  // Check local plugin directories
+  const repoPluginDir = path.join(repoRoot, ".gsb", "plugins");
+  if (existsSync(repoPluginDir)) {
+    return true;
+  }
+
+  const globalPluginDir = path.join(homedir(), ".gsb", "plugins");
+  if (existsSync(globalPluginDir)) {
+    return true;
+  }
+
+  // Check for npm plugins
+  const nodeModulesDir = path.join(repoRoot, "node_modules");
+  if (existsSync(nodeModulesDir)) {
+    try {
+      const entries = readdirSync(nodeModulesDir);
+      if (entries.some((name) => name.startsWith("gsb-plugin-"))) {
+        return true;
+      }
+    } catch {
+      // Ignore
+    }
+  }
+
+  return false;
+}
+
 export async function discoverAndLoadPlugins(
   repoRoot: string,
   config: GsbConfig,

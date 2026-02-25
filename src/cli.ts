@@ -20,7 +20,7 @@ import {
 } from "./core/parsing.ts";
 import { resolveRepoPaths } from "./core/paths.ts";
 import { loadGsbConfig } from "./core/plugin-config.ts";
-import { discoverAndLoadPlugins } from "./core/plugin-loader.ts";
+import { discoverAndLoadPlugins, hasPluginSources } from "./core/plugin-loader.ts";
 import { type PluginRegistry, buildRegistry } from "./core/plugin-registry.ts";
 
 function toDateParser(flagName: string): (value: string) => Date {
@@ -394,6 +394,13 @@ async function loadPlugins(): Promise<PluginRegistry | undefined> {
   }
 
   try {
+    // Quick filesystem check before spawning git subprocesses
+    const cwd = process.cwd();
+    const quickConfig = loadGsbConfig(cwd);
+    if (!hasPluginSources(cwd, quickConfig)) {
+      return undefined;
+    }
+
     const paths = resolveRepoPaths();
     const config = loadGsbConfig(paths.repoRoot);
     const loaded = await discoverAndLoadPlugins(paths.repoRoot, config);
