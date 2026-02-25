@@ -174,6 +174,10 @@ Rule of thumb:
 - [ ] Multi-model benchmark command
 - [ ] Ignore/include path patterns for indexing
 
+## Credits
+
+Inspired by the original Rust project [`yanxue06/git-semantic-search`](https://github.com/yanxue06/git-semantic-search).
+
 ## Contributing
 
 PRs are welcome. Please use conventional commits (`feat:`, `fix:`, `docs:`, etc.) and include tests for behavioural changes.
