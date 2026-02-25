@@ -70,6 +70,39 @@ describe("cli e2e", () => {
       );
       expect(altSearchOutput).toContain('"model": "Xenova/bge-small-en-v1.5"');
 
+      writeFileSync(path.join(repo, "query.txt"), "initial commit\n", "utf8");
+      const fileQueryOutput = run(
+        [...cli, "search", "--query-file", "query.txt", "--format", "json"],
+        repo,
+        env,
+      );
+      expect(fileQueryOutput).toContain('"results"');
+
+      const noResultOutput = run(
+        [...cli, "search", "no-such-commit-message", "--format", "json", "--author", "nobody"],
+        repo,
+        env,
+      );
+      expect(noResultOutput).toContain('"message": "No results"');
+      expect(noResultOutput).toContain('"suggestions"');
+
+      const benchmarkCompareOutput = run(
+        [
+          ...cli,
+          "benchmark",
+          "initial commit",
+          "--model",
+          "Xenova/all-MiniLM-L6-v2",
+          "--compare-model",
+          "Xenova/bge-small-en-v1.5",
+        ],
+        repo,
+        env,
+      );
+      expect(benchmarkCompareOutput).toContain("Model benchmark comparison:");
+      expect(benchmarkCompareOutput).toContain("Xenova/all-MiniLM-L6-v2");
+      expect(benchmarkCompareOutput).toContain("Xenova/bge-small-en-v1.5");
+
       writeFileSync(path.join(repo, "app.ts"), "export const n = 2;\n", "utf8");
       run(["git", "add", "app.ts"], repo);
       run(["git", "commit", "-m", "fix: update value"], repo);

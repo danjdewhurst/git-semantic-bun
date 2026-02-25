@@ -9,8 +9,9 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { bm25ScoresFromCache, getLexicalCacheForIndex } from "../core/lexical-cache.ts";
+import type { IndexArtifactPaths } from "../core/model-paths.ts";
 import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
-import { resolveRepoPaths } from "../core/paths.ts";
+import { type RepoPaths, resolveRepoPaths } from "../core/paths.ts";
 import { combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { type AnnIndexHandle, AnnSearch, ExactSearch } from "../core/vector-search.ts";
@@ -30,20 +31,33 @@ export interface BenchmarkOptions {
   save?: boolean;
   history?: boolean;
   ann?: boolean;
+  compareModel?: string[];
 }
 
-export async function runBenchmark(query: string, options: BenchmarkOptions): Promise<void> {
-  const paths = resolveRepoPaths();
-  const targetPaths = options.model
-    ? resolveModelIndexPaths(paths, options.model)
-    : resolveTargetIndexPaths(paths);
+interface BenchmarkModelResult {
+  modelName: string;
+  result: ReturnType<typeof benchmarkRanking>;
+  candidates: number;
+  indexPaths: IndexArtifactPaths;
+}
 
-  if (options.history) {
-    const entries = loadBenchmarkHistory(targetPaths.benchmarkHistoryPath);
-    console.log(renderBenchmarkHistorySummary(entries));
-    return;
+function uniqueModels(models: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const model of models) {
+    if (seen.has(model)) continue;
+    seen.add(model);
+    out.push(model);
   }
+  return out;
+}
 
+async function runBenchmarkForModel(
+  repoPaths: RepoPaths,
+  targetPaths: IndexArtifactPaths,
+  query: string,
+  options: BenchmarkOptions,
+): Promise<BenchmarkModelResult> {
   const index = loadIndex(targetPaths.indexPath);
 
   const filters: {
@@ -68,7 +82,9 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
 
   const filtered = applyFilters(index.commits, filters);
   if (filtered.length === 0) {
-    throw new Error("No indexed commits matched the provided filters.");
+    throw new Error(
+      `No indexed commits matched the provided filters for model ${index.modelName}.`,
+    );
   }
 
   const scoreWeights = normaliseWeights({
@@ -78,7 +94,7 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
     recencyBoostEnabled: options.recencyBoost !== false,
   });
 
-  const embedder = await createEmbedder(index.modelName, paths.cacheDir);
+  const embedder = await createEmbedder(index.modelName, repoPaths.cacheDir);
   const [queryEmbedding] = await embedder.embedBatch([query]);
 
   if (!queryEmbedding) {
@@ -86,7 +102,6 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
   }
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
-
   const lexicalByCommit = bm25ScoresFromCache(
     query,
     getLexicalCacheForIndex(index),
@@ -103,33 +118,120 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
     };
   });
 
-  const result = benchmarkRanking(scored, options.limit, options.iterations);
+  return {
+    modelName: index.modelName,
+    result: benchmarkRanking(scored, options.limit, options.iterations),
+    candidates: scored.length,
+    indexPaths: targetPaths,
+  };
+}
+
+export async function runBenchmark(query: string, options: BenchmarkOptions): Promise<void> {
+  const paths = resolveRepoPaths();
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
+
+  if (options.history) {
+    const entries = loadBenchmarkHistory(targetPaths.benchmarkHistoryPath);
+    console.log(renderBenchmarkHistorySummary(entries));
+    return;
+  }
+
+  const primary = await runBenchmarkForModel(paths, targetPaths, query, options);
   console.log(`Benchmark query: "${query}"`);
   console.log(
-    `Candidates: ${scored.length} · limit=${options.limit} · iterations=${options.iterations}`,
+    `Candidates: ${primary.candidates} · limit=${options.limit} · iterations=${options.iterations}`,
   );
-  console.log(`Baseline (full sort): ${result.baselineMs.toFixed(3)} ms`);
-  console.log(`Optimised (heap top-k): ${result.optimisedMs.toFixed(3)} ms`);
-  console.log(`Speedup: ${result.speedup.toFixed(2)}x`);
+  console.log(`Model: ${primary.modelName}`);
+  console.log(`Baseline (full sort): ${primary.result.baselineMs.toFixed(3)} ms`);
+  console.log(`Optimised (heap top-k): ${primary.result.optimisedMs.toFixed(3)} ms`);
+  console.log(`Speedup: ${primary.result.speedup.toFixed(2)}x`);
 
   if (options.save) {
     saveBenchmarkHistory(targetPaths.benchmarkHistoryPath, {
       timestamp: new Date().toISOString(),
       query,
-      candidates: scored.length,
+      candidates: primary.candidates,
       limit: options.limit,
       iterations: options.iterations,
-      baselineMs: result.baselineMs,
-      optimisedMs: result.optimisedMs,
-      speedup: result.speedup,
+      baselineMs: primary.result.baselineMs,
+      optimisedMs: primary.result.optimisedMs,
+      speedup: primary.result.speedup,
     });
     console.log(`Saved benchmark run to ${targetPaths.benchmarkHistoryPath}`);
   }
 
+  const compareModels = uniqueModels(options.compareModel ?? []).filter(
+    (modelName) => modelName !== primary.modelName,
+  );
+  if (compareModels.length > 0) {
+    const compared: BenchmarkModelResult[] = [];
+    for (const modelName of compareModels) {
+      const comparePaths = resolveModelIndexPaths(paths, modelName);
+      const next = await runBenchmarkForModel(paths, comparePaths, query, options);
+      compared.push(next);
+
+      if (options.save) {
+        saveBenchmarkHistory(comparePaths.benchmarkHistoryPath, {
+          timestamp: new Date().toISOString(),
+          query,
+          candidates: next.candidates,
+          limit: options.limit,
+          iterations: options.iterations,
+          baselineMs: next.result.baselineMs,
+          optimisedMs: next.result.optimisedMs,
+          speedup: next.result.speedup,
+        });
+      }
+    }
+
+    console.log("\nModel benchmark comparison:");
+    console.log("model | candidates | optimised ms | speedup | delta vs primary");
+    console.log(
+      `${primary.modelName} | ${primary.candidates} | ${primary.result.optimisedMs.toFixed(3)} | ${primary.result.speedup.toFixed(2)}x | baseline`,
+    );
+    for (const model of compared) {
+      const delta = model.result.optimisedMs - primary.result.optimisedMs;
+      const deltaLabel = `${delta >= 0 ? "+" : ""}${delta.toFixed(3)} ms`;
+      console.log(
+        `${model.modelName} | ${model.candidates} | ${model.result.optimisedMs.toFixed(3)} | ${model.result.speedup.toFixed(2)}x | ${deltaLabel}`,
+      );
+    }
+  }
+
   if (options.ann) {
+    const modelIndex = loadIndex(targetPaths.indexPath);
+    const modelEmbedder = await createEmbedder(modelIndex.modelName, paths.cacheDir);
+    const [modelQueryEmbedding] = await modelEmbedder.embedBatch([query]);
+    if (!modelQueryEmbedding) {
+      throw new Error("Failed to generate query embedding.");
+    }
+
+    const annFilters: {
+      author?: string;
+      after?: Date;
+      before?: Date;
+      file?: string;
+    } = {};
+    if (options.author !== undefined) {
+      annFilters.author = options.author;
+    }
+    if (options.after !== undefined) {
+      annFilters.after = options.after;
+    }
+    if (options.before !== undefined) {
+      annFilters.before = options.before;
+    }
+    if (options.file !== undefined) {
+      annFilters.file = options.file;
+    }
+
+    const modelFilters = applyFilters(modelIndex.commits, annFilters);
+
     await runAnnComparison(
-      normalisedQueryEmbedding,
-      filtered,
+      normaliseVector(modelQueryEmbedding),
+      modelFilters,
       options.limit,
       options.iterations,
       targetPaths.annIndexPath,

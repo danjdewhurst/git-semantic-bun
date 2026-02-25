@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { readFileSync } from "node:fs";
 import { Command, InvalidArgumentError } from "commander";
 import { runBenchmark } from "./commands/benchmark.ts";
 import { runDoctor } from "./commands/doctor.ts";
@@ -114,8 +115,9 @@ program
 program
   .command("search")
   .description("Search indexed commits with semantic similarity")
-  .argument("<query>", "Natural language query")
+  .argument("[query]", "Natural language query")
   .option("--model <name>", "Model index to query (defaults to metadata model)")
+  .option("--query-file <path>", "Read query text from file")
   .option("--author <author>", "Filter by author substring")
   .option("--after <date>", "Filter commits after this date", toDateParser("--after"))
   .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
@@ -153,9 +155,10 @@ program
   .option("--strategy <strategy>", "Search strategy: auto, exact, ann", parseStrategyOption, "auto")
   .action(
     async (
-      query: string,
+      query: string | undefined,
       options: {
         model?: string;
+        queryFile?: string;
         author?: string;
         after?: Date;
         before?: Date;
@@ -173,7 +176,20 @@ program
         strategy: "auto" | "exact" | "ann";
       },
     ) => {
-      await runSearch(query, options);
+      if (query && options.queryFile) {
+        throw new InvalidArgumentError("Provide either <query> or --query-file, not both.");
+      }
+
+      let resolvedQuery = query?.trim() ?? "";
+      if (options.queryFile) {
+        resolvedQuery = readFileSync(options.queryFile, "utf8").trim();
+      }
+
+      if (resolvedQuery.length === 0) {
+        throw new InvalidArgumentError("Query is required. Provide <query> or --query-file.");
+      }
+
+      await runSearch(resolvedQuery, options);
     },
   );
 
@@ -327,6 +343,12 @@ program
   .option("--save", "Save benchmark result to history log", false)
   .option("--history", "Show saved benchmark history", false)
   .option("--ann", "Compare exact vs ANN search strategies", false)
+  .option(
+    "--compare-model <name>",
+    "Compare against another model (repeatable)",
+    collectPattern,
+    [],
+  )
   .action(
     async (
       query: string | undefined,
@@ -345,6 +367,7 @@ program
         save: boolean;
         history: boolean;
         ann: boolean;
+        compareModel: string[];
       },
     ) => {
       if (!options.history && (!query || query.trim().length === 0)) {

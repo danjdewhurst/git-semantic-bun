@@ -127,6 +127,7 @@ Runs semantic search over indexed commits.
 --before <date>       commits before date
 --file <path>         path substring filter
 -m, --model <name>    select model index
+--query-file <path>   read long query text from file
 -n, --limit <count>   max results (max 200)
 ```
 
@@ -144,6 +145,13 @@ Runs semantic search over indexed commits.
 --snippet-lines <count>     lines per snippet
 --strategy <auto|exact|ann> search strategy
 ```
+
+`--min-score` defaults are output-mode aware:
+
+- `text` / `markdown`: `0.15`
+- `json`: `0.00`
+
+When no results are found, `gsb search` now prints actionable suggestions (threshold and filter hints).
 
 ### `gsb serve`
 
@@ -180,6 +188,7 @@ Benchmarks ranking path (baseline full-sort vs heap top-k).
 -i, --iterations <count>   iterations (default: 20)
 -n, --limit <count>        max results (default: 10)
 --model <name>             benchmark model index
+--compare-model <name>     compare with another model (repeatable)
 --save                     append to benchmarks.jsonl
 --history                  print saved history
 --ann                      compare exact vs ANN

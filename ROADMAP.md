@@ -46,13 +46,13 @@ Details and targets: [`docs/plans/v0.4-performance.md`](./docs/plans/v0.4-perfor
 
 - [x] Support multiple model indexes in parallel
 - [x] Allow model selection at query time (`search --model`)
-- [ ] Add model-aware benchmark comparison mode
+- [x] Add model-aware benchmark comparison mode
 
 ### Later — search ergonomics
 
-- [ ] Add `--query-file` for long prompts
-- [ ] Add output-mode defaults for `--min-score`
-- [ ] Improve no-result guidance with suggested filters/thresholds
+- [x] Add `--query-file` for long prompts
+- [x] Add output-mode defaults for `--min-score`
+- [x] Improve no-result guidance with suggested filters/thresholds
 
 ## References
 

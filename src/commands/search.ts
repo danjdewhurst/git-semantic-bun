@@ -42,6 +42,35 @@ export interface SearchOptions {
   strategy?: SearchStrategyName;
 }
 
+export function defaultMinScoreForFormat(format: SearchOutputFormat): number {
+  if (format === "json") {
+    return 0;
+  }
+
+  return 0.15;
+}
+
+function buildNoResultSuggestions(options: SearchOptions, minScore: number): string[] {
+  const suggestions: string[] = [];
+
+  if (options.minScore !== undefined) {
+    suggestions.push(`Lower --min-score below ${minScore.toFixed(2)}.`);
+  } else {
+    suggestions.push(
+      `Try lowering --min-score (default for this output mode is ${minScore.toFixed(2)}).`,
+    );
+  }
+
+  if (options.author || options.file || options.after || options.before) {
+    suggestions.push("Relax filters: --author, --file, --after, or --before.");
+  } else {
+    suggestions.push("Increase -n/--limit to inspect more candidates.");
+  }
+
+  suggestions.push("Try broader query terms or remove rare keywords.");
+  return suggestions;
+}
+
 interface RankedResult {
   rank: number;
   score: number;
@@ -224,7 +253,7 @@ export async function executeSearch(
   const explain = options.explain ?? false;
   const snippets = options.snippets ?? false;
   const snippetLines = options.snippetLines ?? 12;
-  const minScore = options.minScore ?? Number.NEGATIVE_INFINITY;
+  const minScore = options.minScore ?? defaultMinScoreForFormat(format);
   const scoreWeights = normaliseWeights({
     semantic: options.semanticWeight ?? 0.75,
     lexical: options.lexicalWeight ?? 0.2,
@@ -359,7 +388,47 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
   });
 
   if (!payload) {
+    const format = options.format ?? "text";
+    const minScore = options.minScore ?? defaultMinScoreForFormat(format);
+    const suggestions = buildNoResultSuggestions(options, minScore);
+
+    if (format === "json") {
+      console.log(
+        JSON.stringify(
+          {
+            query,
+            model: index.modelName,
+            message: "No results",
+            minScore,
+            suggestions,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
+
+    if (format === "markdown") {
+      console.log("# Semantic search results");
+      console.log("");
+      console.log("- **Message:** No results");
+      console.log(`- **Model:** \`${index.modelName}\``);
+      console.log(`- **Min score threshold:** ${minScore.toFixed(2)}`);
+      console.log("");
+      console.log("## Suggestions");
+      console.log("");
+      for (const suggestion of suggestions) {
+        console.log(`- ${suggestion}`);
+      }
+      return;
+    }
+
     console.log("No results.");
+    console.log("Suggestions:");
+    for (const suggestion of suggestions) {
+      console.log(`- ${suggestion}`);
+    }
     return;
   }
 
