@@ -4,6 +4,6 @@ set -euo pipefail
 # Run Biome lint and format check
 bun run lint
 
-# Regenerate TOC.md and stage it if changed
+# Regenerate docs/README.md and stage it if changed
 bun run toc
-git add TOC.md
+git add docs/README.md

@@ -56,12 +56,12 @@ ensure_go_toc() {
 
 GO_TOC_BIN="$(ensure_go_toc)"
 
-"${GO_TOC_BIN}" . \
+"${GO_TOC_BIN}" docs \
   --gitignore \
   --summary \
   --summary-chars 120 \
   --max-depth 4 \
-  --title "Repository Contents" \
-  --output TOC.md
+  --title "Docs" \
+  --output docs/README.md
 
-echo "Generated TOC.md"
+echo "Generated docs/README.md"

@@ -1,37 +1,29 @@
 # Docs
 
-## Guides
-
-- [`getting-started.md`](./getting-started.md)
-  - Installation, prerequisites, and quick start guide.
-- [`cli-reference.md`](./cli-reference.md)
-  - Full command and flag reference for all `gsb` commands.
-- [`search-ranking.md`](./search-ranking.md)
-  - Hybrid ranking algorithm, BM25, recency scoring, and weight tuning.
-- [`serve-daemon.md`](./serve-daemon.md)
-  - Warm search daemon usage, interactive commands, and JSONL mode.
-- [`compact-index.md`](./compact-index.md)
-  - Compact index format, dtype support, and migration behaviour.
-- [`plugins.md`](./plugins.md)
-  - Plugin authoring guide — custom embedders, formatters, hooks, CLI commands, and more.
-
-## Development
-
-- [`architecture.md`](./architecture.md)
-  - Architecture overview, module map, and data flow diagrams.
-- [`testing.md`](./testing.md)
-  - Test suites, running tests, fake embeddings, and writing new tests.
-- [`ci-and-releases.md`](./ci-and-releases.md)
-  - CI pipeline, performance guardrails, release process, and binary builds.
-
-## Planning
-
-- [`plans/v0.4-performance.md`](./plans/v0.4-performance.md)
-  - Active performance execution plan for v0.4.
-- [`plans/v0.3.0.md`](./plans/v0.3.0.md)
-  - Archived implementation plan for v0.3.0 (delivered).
-
-## Project-level references
-
-- [`../README.md`](../README.md) — user-facing usage guide
-- [`../ROADMAP.md`](../ROADMAP.md) — current roadmap and next priorities
+├── plans/
+│   ├── [plugin-system.md](plans/plugin-system.md)
+│   │   > The project is a ~2,500-line CLI with clean separation between commands () and core logic (). It already has natural...
+│   ├── [v0.3.0.md](plans/v0.3.0.md)
+│   │   > Status: Delivered in .
+│   └── [v0.4-performance.md](plans/v0.4-performance.md)
+│       > Goal: improve end-to-end speed (cold start, warm query latency, large-repo scalability) without sacrificing result...
+├── [architecture.md](architecture.md)
+│   > src/ ├── cli.ts # Entry point — Commander program definition ├── index.ts # Public re-exports ├──...
+├── [ci-and-releases.md](ci-and-releases.md)
+│   > CI runs on every push to and on pull requests via .
+├── [cli-reference.md](cli-reference.md)
+│   > All commands are invoked as .
+├── [compact-index.md](compact-index.md)
+│   > { "version": 2, "modelName": "Xenova/all-MiniLM-L6-v2", "createdAt": "2026-02-25T00:00:00.000Z", "lastUpdatedAt":...
+├── [getting-started.md](getting-started.md)
+│   > git clone https://github.com/danjdewhurst/git-semantic-bun.git cd git-semantic-bun bun install bun link
+├── [plugins.md](plugins.md)
+│   > gsb supports an extensible plugin system. Plugins can add custom embedders, search strategies, scoring signals, output...
+├── [README.md](README.md)
+│   > ├── plans/ │ ├── plugin-system.md │ │ > The project is a ~2,500-line CLI with clean separation...
+├── [search-ranking.md](search-ranking.md)
+│   > The query and each commit's embedding text are encoded into vectors using the same Transformers.js model. Similarity is...
+├── [serve-daemon.md](serve-daemon.md)
+│   > gsb serve [options]
+└── [testing.md](testing.md)
+    > bun test
