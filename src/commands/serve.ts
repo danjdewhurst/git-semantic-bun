@@ -1,6 +1,7 @@
 import readline from "node:readline";
 import { createEmbedder } from "../core/embeddings.ts";
 import { loadIndex } from "../core/index-store.ts";
+import { getLexicalCacheForIndex } from "../core/lexical-cache.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import { type SearchOptions, executeSearch } from "./search.ts";
 
@@ -12,6 +13,7 @@ export async function runServe(options: ServeOptions): Promise<void> {
   const paths = resolveRepoPaths();
   let index = loadIndex(paths.indexPath);
   let embedder = await createEmbedder(index.modelName, paths.cacheDir);
+  let lexicalCache = getLexicalCacheForIndex(index);
 
   console.error(`gsb serve ready (model=${index.modelName}, commits=${index.commits.length})`);
   console.error("Type a query per line. Commands: :reload, :quit");
@@ -35,6 +37,7 @@ export async function runServe(options: ServeOptions): Promise<void> {
     if (input === ":reload") {
       index = loadIndex(paths.indexPath);
       embedder = await createEmbedder(index.modelName, paths.cacheDir);
+      lexicalCache = getLexicalCacheForIndex(index);
       console.error(`reloaded (model=${index.modelName}, commits=${index.commits.length})`);
       continue;
     }
@@ -47,6 +50,7 @@ export async function runServe(options: ServeOptions): Promise<void> {
           index,
           embedder,
           repoRoot: paths.repoRoot,
+          lexicalCache,
         },
       );
 

@@ -4,11 +4,15 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { getCommitDiffSnippet } from "../core/git.ts";
 import { loadIndex } from "../core/index-store.ts";
+import {
+  type LexicalCache,
+  bm25ScoresFromCache,
+  getLexicalCacheForIndex,
+} from "../core/lexical-cache.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import {
   type ScoreWeights,
-  bm25Scores,
   combineScores,
   normaliseWeights,
   recencyScore,
@@ -194,6 +198,7 @@ interface SearchExecutionContext {
   index: SemanticIndex;
   embedder: Embedder;
   repoRoot: string;
+  lexicalCache?: LexicalCache;
 }
 
 export async function executeSearch(
@@ -202,6 +207,7 @@ export async function executeSearch(
   context: SearchExecutionContext,
 ): Promise<SearchOutputPayload | null> {
   const { index, embedder, repoRoot } = context;
+  const lexicalCache = context.lexicalCache ?? getLexicalCacheForIndex(index);
 
   if (index.commits.length === 0) {
     throw new Error("Index is empty. Run `gsb index` first.");
@@ -247,13 +253,10 @@ export async function executeSearch(
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
-  const lexicalByCommit = bm25Scores(
+  const lexicalByCommit = bm25ScoresFromCache(
     query,
-    filtered.map((commit) => ({
-      id: commit.hash,
-      message: commit.message,
-      files: commit.files,
-    })),
+    lexicalCache,
+    filtered.map((commit) => commit.hash),
   );
 
   const scored = filtered.map((commit) => {

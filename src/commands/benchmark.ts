@@ -7,8 +7,9 @@ import { benchmarkRanking } from "../core/benchmark.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
+import { bm25ScoresFromCache, getLexicalCacheForIndex } from "../core/lexical-cache.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
-import { bm25Scores, combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
+import { combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 
 export interface BenchmarkOptions {
@@ -78,13 +79,10 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
-  const lexicalByCommit = bm25Scores(
+  const lexicalByCommit = bm25ScoresFromCache(
     query,
-    filtered.map((commit) => ({
-      id: commit.hash,
-      message: commit.message,
-      files: commit.files,
-    })),
+    getLexicalCacheForIndex(index),
+    filtered.map((commit) => commit.hash),
   );
 
   const scored = filtered.map((commit) => {
