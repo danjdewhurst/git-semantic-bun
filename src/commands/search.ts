@@ -3,8 +3,9 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
-import type { SearchFilters } from "../core/types.ts";
+import type { SearchOutputFormat } from "../core/parsing.ts";
 import { cosineSimilarity } from "../core/similarity.ts";
+import type { SearchFilters } from "../core/types.ts";
 
 export interface SearchOptions {
   author?: string;
@@ -12,6 +13,116 @@ export interface SearchOptions {
   before?: Date;
   file?: string;
   limit?: number;
+  format?: SearchOutputFormat;
+}
+
+interface RankedResult {
+  rank: number;
+  score: number;
+  hash: string;
+  date: string;
+  author: string;
+  message: string;
+  files: string[];
+}
+
+interface SearchOutputPayload {
+  query: string;
+  model: string;
+  format: SearchOutputFormat;
+  totalIndexedCommits: number;
+  matchedCommits: number;
+  returnedResults: number;
+  filters: {
+    author?: string;
+    after?: string;
+    before?: string;
+    file?: string;
+    limit: number;
+  };
+  results: RankedResult[];
+}
+
+function buildPayload(
+  query: string,
+  model: string,
+  format: SearchOutputFormat,
+  totalIndexedCommits: number,
+  matchedCommits: number,
+  limit: number,
+  filters: SearchFilters,
+  ranked: RankedResult[],
+): SearchOutputPayload {
+  const payloadFilters: SearchOutputPayload["filters"] = {
+    limit,
+  };
+
+  if (filters.author !== undefined) {
+    payloadFilters.author = filters.author;
+  }
+  if (filters.after !== undefined) {
+    payloadFilters.after = filters.after.toISOString();
+  }
+  if (filters.before !== undefined) {
+    payloadFilters.before = filters.before.toISOString();
+  }
+  if (filters.file !== undefined) {
+    payloadFilters.file = filters.file;
+  }
+
+  return {
+    query,
+    model,
+    format,
+    totalIndexedCommits,
+    matchedCommits,
+    returnedResults: ranked.length,
+    filters: payloadFilters,
+    results: ranked,
+  };
+}
+
+function renderTextOutput(payload: SearchOutputPayload): void {
+  console.log(`Semantic results for: "${payload.query}"`);
+  console.log(
+    `Model: ${payload.model} · Indexed: ${payload.totalIndexedCommits} · Matched: ${payload.matchedCommits} · Showing: ${payload.returnedResults}`,
+  );
+  console.log("");
+
+  for (const result of payload.results) {
+    const scorePct = (result.score * 100).toFixed(1);
+    console.log(`${result.rank}. ${result.message}`);
+    console.log(`   ${result.hash} · ${result.author} · ${result.date} · score ${scorePct}%`);
+    if (result.files.length > 0) {
+      console.log(`   files: ${result.files.join(", ")}`);
+    }
+    console.log("");
+  }
+}
+
+function renderMarkdownOutput(payload: SearchOutputPayload): void {
+  console.log(`# Semantic search results`);
+  console.log("");
+  console.log(`- **Query:** \`${payload.query}\``);
+  console.log(`- **Model:** \`${payload.model}\``);
+  console.log(`- **Indexed commits:** ${payload.totalIndexedCommits}`);
+  console.log(`- **Filter match count:** ${payload.matchedCommits}`);
+  console.log(`- **Returned results:** ${payload.returnedResults}`);
+  console.log("");
+
+  for (const result of payload.results) {
+    const scorePct = (result.score * 100).toFixed(1);
+    console.log(`## ${result.rank}. ${result.message}`);
+    console.log("");
+    console.log(`- **Commit:** \`${result.hash}\``);
+    console.log(`- **Author:** ${result.author}`);
+    console.log(`- **Date:** ${result.date}`);
+    console.log(`- **Similarity:** ${scorePct}%`);
+    if (result.files.length > 0) {
+      console.log(`- **Files:** ${result.files.map((file) => `\`${file}\``).join(", ")}`);
+    }
+    console.log("");
+  }
 }
 
 export async function runSearch(query: string, options: SearchOptions): Promise<void> {
@@ -21,6 +132,9 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
   if (index.commits.length === 0) {
     throw new Error("Index is empty. Run `gsb index` first.");
   }
+
+  const format = options.format ?? "text";
+  const limit = options.limit ?? DEFAULT_LIMIT;
 
   const filters: SearchFilters = {};
   if (options.author !== undefined) {
@@ -49,24 +163,47 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     throw new Error("Failed to generate query embedding.");
   }
 
-  const ranked = filtered
+  const rankedResults: RankedResult[] = filtered
     .map((commit) => ({
-      commit,
-      score: cosineSimilarity(queryEmbedding, commit.embedding)
+      hash: commit.hash,
+      author: commit.author,
+      date: commit.date,
+      message: commit.message,
+      files: commit.files,
+      score: cosineSimilarity(queryEmbedding, commit.embedding),
     }))
     .sort((a, b) => b.score - a.score)
-    .slice(0, options.limit ?? DEFAULT_LIMIT);
+    .slice(0, limit)
+    .map((result, indexOfResult) => ({
+      rank: indexOfResult + 1,
+      ...result,
+    }));
 
-  if (ranked.length === 0) {
+  if (rankedResults.length === 0) {
     console.log("No results.");
     return;
   }
 
-  for (const { commit, score } of ranked) {
-    console.log(`${score.toFixed(4)}  ${commit.hash}  ${commit.date}  ${commit.author}`);
-    console.log(`  ${commit.message}`);
-    if (commit.files.length > 0) {
-      console.log(`  files: ${commit.files.join(", ")}`);
-    }
+  const payload = buildPayload(
+    query,
+    index.modelName,
+    format,
+    index.commits.length,
+    filtered.length,
+    limit,
+    filters,
+    rankedResults,
+  );
+
+  if (format === "json") {
+    console.log(JSON.stringify(payload, null, 2));
+    return;
   }
+
+  if (format === "markdown") {
+    renderMarkdownOutput(payload);
+    return;
+  }
+
+  renderTextOutput(payload);
 }

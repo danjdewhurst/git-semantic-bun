@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { parseGitLogOutput } from "../src/core/git.ts";
-import { parseDateOption, parseLimitOption } from "../src/core/parsing.ts";
+import { parseDateOption, parseLimitOption, parseSearchOutputFormat } from "../src/core/parsing.ts";
 
 describe("parsing helpers", () => {
   it("parses valid date option", () => {
@@ -19,6 +19,16 @@ describe("parsing helpers", () => {
   it("rejects out-of-range limit option", () => {
     expect(() => parseLimitOption("0")).toThrow();
     expect(() => parseLimitOption("500")).toThrow();
+  });
+
+  it("parses output format option", () => {
+    expect(parseSearchOutputFormat("text")).toBe("text");
+    expect(parseSearchOutputFormat("markdown")).toBe("markdown");
+    expect(parseSearchOutputFormat("json")).toBe("json");
+  });
+
+  it("rejects invalid output format option", () => {
+    expect(() => parseSearchOutputFormat("yaml")).toThrow();
   });
 });
 

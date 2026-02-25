@@ -6,7 +6,7 @@ import { runSearch } from "./commands/search.ts";
 import { runStats } from "./commands/stats.ts";
 import { runUpdate } from "./commands/update.ts";
 import { DEFAULT_BATCH_SIZE, DEFAULT_LIMIT, DEFAULT_MODEL } from "./core/constants.ts";
-import { parseDateOption, parseLimitOption } from "./core/parsing.ts";
+import { parseDateOption, parseLimitOption, parseSearchOutputFormat } from "./core/parsing.ts";
 
 function toDateParser(flagName: string): (value: string) => Date {
   return (value) => {
@@ -69,10 +69,18 @@ program
   .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
   .option("--file <path>", "Filter commits touching file path substring")
   .option("-n, --limit <count>", "Max results", limitParser, DEFAULT_LIMIT)
+  .option("--format <format>", "Output format: text, markdown, json", parseSearchOutputFormat, "text")
   .action(
     async (
       query: string,
-      options: { author?: string; after?: Date; before?: Date; file?: string; limit: number }
+      options: {
+        author?: string;
+        after?: Date;
+        before?: Date;
+        file?: string;
+        limit: number;
+        format: "text" | "markdown" | "json";
+      }
     ) => {
       await runSearch(query, options);
     }

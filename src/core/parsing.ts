@@ -30,3 +30,13 @@ export function validateBatchSize(value: number): number {
 
   return value;
 }
+
+export type SearchOutputFormat = "text" | "markdown" | "json";
+
+export function parseSearchOutputFormat(value: string): SearchOutputFormat {
+  if (value === "text" || value === "markdown" || value === "json") {
+    return value;
+  }
+
+  throw new Error(`Invalid format: ${value}. Allowed values: text, markdown, json.`);
+}

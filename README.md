@@ -83,13 +83,20 @@ Indexes commit history into embeddings.
 
 Runs semantic search over indexed commits.
 
-Filters:
+Filters and output controls:
 
 - `--author <name>`
 - `--after <date>`
 - `--before <date>`
 - `--file <path-substring>`
 - `-n, --limit <count>`
+- `--format <text|markdown|json>`
+
+Output formats:
+
+- `text` (default): human-friendly terminal output
+- `markdown`: clean markdown blocks, useful for notes and sharing
+- `json`: structured output for piping into scripts and LLM workflows
 
 ### `gsb update [--full] [--batch-size <n>]`
 
@@ -105,6 +112,8 @@ Shows index count, model, size, and timestamps.
 gsb search "refactor payment retry logic"
 gsb search "fix flaky parser" --after 2025-01-01 --author dan
 gsb search "optimise caching" --file src/core -n 5
+gsb search "token refresh race" --format markdown
+gsb search "error handling in webhook retries" --format json
 ```
 
 ## Before vs after
