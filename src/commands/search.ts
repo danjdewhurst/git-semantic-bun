@@ -22,12 +22,19 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     throw new Error("Index is empty. Run `gsb index` first.");
   }
 
-  const filters: SearchFilters = {
-    author: options.author,
-    after: options.after,
-    before: options.before,
-    file: options.file
-  };
+  const filters: SearchFilters = {};
+  if (options.author !== undefined) {
+    filters.author = options.author;
+  }
+  if (options.after !== undefined) {
+    filters.after = options.after;
+  }
+  if (options.before !== undefined) {
+    filters.before = options.before;
+  }
+  if (options.file !== undefined) {
+    filters.file = options.file;
+  }
 
   const filtered = applyFilters(index.commits, filters);
   if (filtered.length === 0) {

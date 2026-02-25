@@ -48,11 +48,16 @@ program
   .option("-m, --model <name>", "Embedding model name override")
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .action(async (options: { full: boolean; model?: string; batchSize: string }) => {
-    await runIndex({
+    const indexOptions: { full: boolean; batchSize: number; model?: string } = {
       full: options.full,
-      model: options.model,
       batchSize: limitParser(options.batchSize)
-    });
+    };
+
+    if (options.model !== undefined) {
+      indexOptions.model = options.model;
+    }
+
+    await runIndex(indexOptions);
   });
 
 program
@@ -79,7 +84,15 @@ program
   .option("--full", "Include full patch text in newly indexed commits")
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .action(async (options: { full?: boolean; batchSize: string }) => {
-    await runUpdate({ full: options.full, batchSize: limitParser(options.batchSize) });
+    const updateOptions: { batchSize: number; full?: boolean } = {
+      batchSize: limitParser(options.batchSize)
+    };
+
+    if (options.full !== undefined) {
+      updateOptions.full = options.full;
+    }
+
+    await runUpdate(updateOptions);
   });
 
 program
