@@ -73,13 +73,35 @@ function getPatchForCommit(cwd: string, hash: string): string {
 
 export function getCommitDiffSnippet(cwd: string, hash: string, maxLines: number = 12): string {
   const patch = runGit(["show", "--format=", "--patch", "--no-color", hash], cwd);
-  const lines = patch
-    .split("\n")
-    .filter((line) => line.startsWith("+") || line.startsWith("-"))
-    .filter((line) => !(line.startsWith("+++") || line.startsWith("---")))
-    .slice(0, Math.max(1, maxLines));
+  const lines = patch.split("\n");
 
-  return lines.join("\n").trim();
+  const result: string[] = [];
+  const maxBodyLines = Math.max(1, maxLines);
+  let bodyLines = 0;
+
+  for (const line of lines) {
+    const isFileHeader = line.startsWith("diff --git") || line.startsWith("--- ") || line.startsWith("+++ ");
+    const isHunkHeader = line.startsWith("@@");
+
+    if (isFileHeader || isHunkHeader) {
+      result.push(line);
+      continue;
+    }
+
+    const isDiffBodyLine = line.startsWith("+") || line.startsWith("-") || line.startsWith(" ");
+    if (!isDiffBodyLine) {
+      continue;
+    }
+
+    result.push(line);
+    bodyLines += 1;
+
+    if (bodyLines >= maxBodyLines) {
+      break;
+    }
+  }
+
+  return result.join("\n").trim();
 }
 
 export function readCommits(options: ReadCommitsOptions): GitCommit[] {

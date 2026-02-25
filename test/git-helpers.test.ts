@@ -34,7 +34,9 @@ describe("git helpers", () => {
       expect(isAncestorCommit(dir, firstHash)).toBeTrue();
 
       const headHash = run(["git", "rev-parse", "HEAD"], dir);
-      const snippet = getCommitDiffSnippet(dir, headHash, 4);
+      const snippet = getCommitDiffSnippet(dir, headHash, 2);
+      expect(snippet).toContain("diff --git");
+      expect(snippet).toContain("@@");
       expect(snippet).toContain("-one");
       expect(snippet).toContain("+two");
     } finally {

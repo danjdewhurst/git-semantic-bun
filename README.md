@@ -152,6 +152,9 @@ Filters and output controls:
 - `--file <path-substring>`
 - `-n, --limit <count>`
 - `--format <text|markdown|json>`
+- `--snippets` (include diff snippets)
+- `--snippet-lines <count>` (default 12)
+- `--min-score <score>`
 
 Output formats:
 

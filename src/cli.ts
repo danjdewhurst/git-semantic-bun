@@ -96,6 +96,7 @@ program
   .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
   .option("--no-recency-boost", "Disable recency scoring boost")
   .option("--snippets", "Include compact diff snippets in search output", false)
+  .option("--snippet-lines <count>", "Diff snippet body lines to include", limitParser, 12)
   .option("--min-score <score>", "Minimum final score threshold", Number.parseFloat)
   .action(
     async (
@@ -113,6 +114,7 @@ program
         recencyWeight: number;
         recencyBoost: boolean;
         snippets: boolean;
+        snippetLines: number;
         minScore?: number;
       }
     ) => {

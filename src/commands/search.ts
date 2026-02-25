@@ -23,6 +23,7 @@ export interface SearchOptions {
   recencyWeight?: number;
   recencyBoost?: boolean;
   snippets?: boolean;
+  snippetLines?: number;
   minScore?: number;
 }
 
@@ -194,6 +195,7 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
   const limit = options.limit ?? DEFAULT_LIMIT;
   const explain = options.explain ?? false;
   const snippets = options.snippets ?? false;
+  const snippetLines = options.snippetLines ?? 12;
   const minScore = options.minScore ?? Number.NEGATIVE_INFINITY;
   const scoreWeights = normaliseWeights({
     semantic: options.semanticWeight ?? 0.75,
@@ -268,7 +270,7 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     ...result,
     ...(snippets
       ? {
-          snippet: getCommitDiffSnippet(paths.repoRoot, result.hash),
+          snippet: getCommitDiffSnippet(paths.repoRoot, result.hash, snippetLines),
         }
       : {}),
   }));
