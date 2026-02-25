@@ -1,6 +1,7 @@
 import { DEFAULT_LIMIT } from "../core/constants.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
+import { getCommitDiffSnippet } from "../core/git.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
@@ -21,6 +22,8 @@ export interface SearchOptions {
   lexicalWeight?: number;
   recencyWeight?: number;
   recencyBoost?: boolean;
+  snippets?: boolean;
+  minScore?: number;
 }
 
 interface RankedResult {
@@ -34,6 +37,7 @@ interface RankedResult {
   author: string;
   message: string;
   files: string[];
+  snippet?: string;
 }
 
 interface SearchOutputPayload {
@@ -127,6 +131,12 @@ function renderTextOutput(payload: SearchOutputPayload): void {
     if (result.files.length > 0) {
       console.log(`   files: ${result.files.join(", ")}`);
     }
+    if (result.snippet) {
+      console.log("   snippet:");
+      for (const line of result.snippet.split("\n")) {
+        console.log(`     ${line}`);
+      }
+    }
     console.log("");
   }
 }
@@ -162,6 +172,12 @@ function renderMarkdownOutput(payload: SearchOutputPayload): void {
     if (result.files.length > 0) {
       console.log(`- **Files:** ${result.files.map((file) => `\`${file}\``).join(", ")}`);
     }
+    if (result.snippet) {
+      console.log("- **Snippet:**");
+      console.log("```diff");
+      console.log(result.snippet);
+      console.log("```");
+    }
     console.log("");
   }
 }
@@ -177,6 +193,8 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
   const format = options.format ?? "text";
   const limit = options.limit ?? DEFAULT_LIMIT;
   const explain = options.explain ?? false;
+  const snippets = options.snippets ?? false;
+  const minScore = options.minScore ?? Number.NEGATIVE_INFINITY;
   const scoreWeights = normaliseWeights({
     semantic: options.semanticWeight ?? 0.75,
     lexical: options.lexicalWeight ?? 0.2,
@@ -233,12 +251,19 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     };
   });
 
-  const rankedResults: RankedResult[] = selectTopKByScore(scored, limit, (entry) => entry.score).map(
-    (result, indexOfResult) => ({
-      rank: indexOfResult + 1,
-      ...result,
-    }),
+  const rankedResultsRaw = selectTopKByScore(scored, limit, (entry) => entry.score).filter(
+    (result) => result.score >= minScore,
   );
+
+  const rankedResults: RankedResult[] = rankedResultsRaw.map((result, indexOfResult) => ({
+    rank: indexOfResult + 1,
+    ...result,
+    ...(snippets
+      ? {
+          snippet: getCommitDiffSnippet(paths.repoRoot, result.hash),
+        }
+      : {}),
+  }));
 
   if (rankedResults.length === 0) {
     console.log("No results.");

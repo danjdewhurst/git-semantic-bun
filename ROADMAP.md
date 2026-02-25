@@ -60,9 +60,9 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 ## Milestone 4 — UX & Agent Workflows
 
 ### 4.1 Better output
-- [ ] Optional diff snippets in search results (`--snippets`).
-- [ ] JSON output includes score breakdown fields.
-- [ ] Add `--min-score` to suppress weak matches.
+- [x] Optional diff snippets in search results (`--snippets`).
+- [x] JSON output includes score breakdown fields.
+- [x] Add `--min-score` to suppress weak matches.
 
 ### 4.2 Agent-friendly commands
 - [ ] Add `gsb doctor` to validate environment/index/model cache.

@@ -71,6 +71,17 @@ function getPatchForCommit(cwd: string, hash: string): string {
   return runGit(["show", "--format=", "--patch", "--no-color", hash], cwd);
 }
 
+export function getCommitDiffSnippet(cwd: string, hash: string, maxLines: number = 12): string {
+  const patch = runGit(["show", "--format=", "--patch", "--no-color", hash], cwd);
+  const lines = patch
+    .split("\n")
+    .filter((line) => line.startsWith("+") || line.startsWith("-"))
+    .filter((line) => !(line.startsWith("+++") || line.startsWith("---")))
+    .slice(0, Math.max(1, maxLines));
+
+  return lines.join("\n").trim();
+}
+
 export function readCommits(options: ReadCommitsOptions): GitCommit[] {
   const args = [
     "log",

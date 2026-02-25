@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { commitExists, isAncestorCommit } from "../src/core/git.ts";
+import { commitExists, getCommitDiffSnippet, isAncestorCommit } from "../src/core/git.ts";
 
 function run(command: string[], cwd: string): string {
   return execFileSync(command[0] as string, command.slice(1), {
@@ -32,6 +32,11 @@ describe("git helpers", () => {
       expect(commitExists(dir, firstHash)).toBeTrue();
       expect(commitExists(dir, "deadbeef")).toBeFalse();
       expect(isAncestorCommit(dir, firstHash)).toBeTrue();
+
+      const headHash = run(["git", "rev-parse", "HEAD"], dir);
+      const snippet = getCommitDiffSnippet(dir, headHash, 4);
+      expect(snippet).toContain("-one");
+      expect(snippet).toContain("+two");
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

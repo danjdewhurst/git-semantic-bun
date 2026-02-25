@@ -86,6 +86,8 @@ program
   .option("--lexical-weight <weight>", "Lexical score weight (0..1)", toWeightParser("--lexical-weight"), 0.2)
   .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
   .option("--no-recency-boost", "Disable recency scoring boost")
+  .option("--snippets", "Include compact diff snippets in search output", false)
+  .option("--min-score <score>", "Minimum final score threshold", Number.parseFloat)
   .action(
     async (
       query: string,
@@ -101,6 +103,8 @@ program
         lexicalWeight: number;
         recencyWeight: number;
         recencyBoost: boolean;
+        snippets: boolean;
+        minScore?: number;
       }
     ) => {
       await runSearch(query, options);
