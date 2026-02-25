@@ -9,6 +9,25 @@ Semantic search for git history, built with Bun.
 
 Stop guessing commit message keywords. Describe what changed in plain English and get the most relevant commits back.
 
+## Table of contents
+
+- [Why this exists](#why-this-exists)
+- [What you get](#what-you-get)
+- [Install](#install)
+- [Quick start](#quick-start)
+- [Commands](#commands)
+- [Examples](#examples)
+- [Embedding model options](#embedding-model-options)
+- [Practical notes](#practical-notes)
+- [Why this is useful for AI agents](#why-this-is-useful-for-ai-agents)
+- [Agent config snippet (for `AGENTS.md`, `CLAUDE.md`, etc.)](#agent-config-snippet-for-agentsmd-claudemd-etc)
+- [Before vs after](#before-vs-after)
+- [Development](#development)
+- [Roadmap](#roadmap)
+- [Credits](#credits)
+- [Contributing](#contributing)
+- [Licence](#licence)
+
 ## Why this exists
 
 Traditional git search is lexical:
