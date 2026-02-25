@@ -32,7 +32,7 @@ export async function runServe(options: ServeOptions): Promise<void> {
   console.error(
     `gsb serve ready (model=${index.modelName}, commits=${index.commits.length}, ${strategyLabel})`,
   );
-  console.error("Type a query per line. Commands: :reload, :quit");
+  console.error("Type a query per line. Commands: :reload, :quit/:exit");
 
   const rl = readline.createInterface({
     input: process.stdin,

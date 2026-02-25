@@ -55,7 +55,7 @@ const program = new Command();
 program
   .name("gsb")
   .description("Local semantic git commit search CLI with Bun + transformers.js")
-  .version("0.1.0");
+  .version("0.3.0");
 
 program
   .command("init")
