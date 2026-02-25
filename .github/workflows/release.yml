@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  checks:
+    name: Validate before release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.9"
+      - name: Install dependencies
+        run: bun install
+      - name: Typecheck
+        run: bun run typecheck
+      - name: Test
+        run: bun test
+
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    needs: checks
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: bun-linux-x64
+            artifact: gsb-linux-x64
+          - target: bun-linux-arm64
+            artifact: gsb-linux-arm64
+          - target: bun-darwin-x64
+            artifact: gsb-macos-x64
+          - target: bun-darwin-arm64
+            artifact: gsb-macos-arm64
+          - target: bun-windows-x64
+            artifact: gsb-windows-x64.exe
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.9"
+      - name: Install dependencies
+        run: bun install
+      - name: Build binary
+        run: bun build ./src/cli.ts --compile --target ${{ matrix.target }} --outfile ./dist/${{ matrix.artifact }}
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ./dist/${{ matrix.artifact }}
+
+  publish:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist
+          merge-multiple: true
+      - name: Create GitHub release and upload binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/gsb-linux-x64
+            dist/gsb-linux-arm64
+            dist/gsb-macos-x64
+            dist/gsb-macos-arm64
+            dist/gsb-windows-x64.exe
