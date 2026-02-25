@@ -266,17 +266,7 @@ bun run build        # compile to dist/
 
 ## Docs
 
-| Document | Description |
-|---|---|
-| [Getting Started](./docs/getting-started.md) | Installation, prerequisites, and quick start |
-| [CLI Reference](./docs/cli-reference.md) | Full command and flag reference |
-| [Search & Ranking](./docs/search-ranking.md) | Hybrid scoring algorithm and weight tuning |
-| [Serve Daemon](./docs/serve-daemon.md) | Warm daemon usage and integration patterns |
-| [Architecture](./docs/architecture.md) | Module map, data flow, and design |
-| [Compact Index Format](./docs/compact-index.md) | Storage format and dtype support |
-| [Testing](./docs/testing.md) | Test suites, fake embeddings, and conventions |
-| [CI & Releases](./docs/ci-and-releases.md) | CI pipeline, perf guardrails, and release process |
-| [ROADMAP.md](./ROADMAP.md) | Current priorities and version history |
+See the [documentation index](./docs/README.md) for guides, architecture, and development references. Project roadmap: [ROADMAP.md](./ROADMAP.md).
 
 ---
 
