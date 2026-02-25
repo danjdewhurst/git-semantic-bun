@@ -58,6 +58,7 @@ GO_TOC_BIN="$(ensure_go_toc)"
 
 "${GO_TOC_BIN}" docs \
   --gitignore \
+  --fancy \
   --summary \
   --summary-chars 120 \
   --max-depth 4 \
