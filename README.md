@@ -15,6 +15,14 @@ Download the latest release asset for your platform:
 
 - <https://github.com/danjdewhurst/git-semantic-bun/releases>
 
+### Install directly from GitHub with Bun (no npm)
+
+```bash
+bun add -g github:danjdewhurst/git-semantic-bun
+
+gsb --help
+```
+
 ### Local development
 
 Requirements:
