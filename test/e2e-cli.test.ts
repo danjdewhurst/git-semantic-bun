@@ -27,7 +27,8 @@ describe("cli e2e", () => {
       run(["git", "add", "app.ts"], repo);
       run(["git", "commit", "-m", "feat: initial commit"], repo);
 
-      const cli = ["bun", "run", "/home/dan/projects/git-semantic-bun/src/cli.ts"];
+      const cliPath = path.join(import.meta.dir, "..", "src", "cli.ts");
+      const cli = ["bun", "run", cliPath];
       const env = { GSB_FAKE_EMBEDDINGS: "1" };
 
       run([...cli, "init"], repo, env);
