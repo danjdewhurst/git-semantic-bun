@@ -2,7 +2,7 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
-import { combineScores, lexicalScore, normaliseWeights, recencyScore } from "../core/ranking.ts";
+import { bm25Scores, combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { benchmarkRanking } from "../core/benchmark.ts";
 
@@ -64,9 +64,18 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
+  const lexicalByCommit = bm25Scores(
+    query,
+    filtered.map((commit) => ({
+      id: commit.hash,
+      message: commit.message,
+      files: commit.files,
+    })),
+  );
+
   const scored = filtered.map((commit) => {
     const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
-    const lexical = lexicalScore(query, commit.message, commit.files);
+    const lexical = lexicalByCommit.get(commit.hash) ?? 0;
     const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
 
     return {

@@ -5,7 +5,7 @@ import { getCommitDiffSnippet } from "../core/git.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
-import { combineScores, lexicalScore, normaliseWeights, recencyScore, type ScoreWeights } from "../core/ranking.ts";
+import { bm25Scores, combineScores, normaliseWeights, recencyScore, type ScoreWeights } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { selectTopKByScore } from "../core/topk.ts";
 import type { SearchFilters } from "../core/types.ts";
@@ -231,9 +231,18 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
+  const lexicalByCommit = bm25Scores(
+    query,
+    filtered.map((commit) => ({
+      id: commit.hash,
+      message: commit.message,
+      files: commit.files,
+    })),
+  );
+
   const scored = filtered.map((commit) => {
     const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
-    const lexical = lexicalScore(query, commit.message, commit.files);
+    const lexical = lexicalByCommit.get(commit.hash) ?? 0;
     const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
     const score = combineScores(semanticScore, lexical, recency, scoreWeights);
 
