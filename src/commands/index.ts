@@ -5,12 +5,15 @@ import { embedCommits } from "../core/indexing.ts";
 import { saveIndex } from "../core/index-store.ts";
 import { loadMetadata } from "../core/metadata.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
+import { filterCommitsByPatterns, loadGsbIgnorePatterns } from "../core/patterns.ts";
 import { validateBatchSize } from "../core/parsing.ts";
 
 export interface IndexOptions {
   full: boolean;
   model?: string;
   batchSize: number;
+  include: string[];
+  exclude: string[];
 }
 
 export async function runIndex(options: IndexOptions): Promise<void> {
@@ -34,13 +37,16 @@ export async function runIndex(options: IndexOptions): Promise<void> {
     includePatch: options.full
   });
 
-  if (commits.length === 0) {
-    throw new Error("No commits found in repository history.");
+  const ignores = loadGsbIgnorePatterns(paths.repoRoot);
+  const filteredCommits = filterCommitsByPatterns(commits, options.include, [...options.exclude, ...ignores]);
+
+  if (filteredCommits.length === 0) {
+    throw new Error("No commits found in repository history after applying include/exclude patterns.");
   }
 
-  console.log(`Indexing ${commits.length} commits with model ${modelName}`);
+  console.log(`Indexing ${filteredCommits.length} commits with model ${modelName}`);
   const embedder = await createEmbedder(modelName, paths.cacheDir);
-  const indexedCommits = await embedCommits(commits, embedder, {
+  const indexedCommits = await embedCommits(filteredCommits, embedder, {
     batchSize,
     includePatch: options.full,
     progressLabel: "Embedding commits"

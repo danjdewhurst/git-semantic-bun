@@ -130,12 +130,15 @@ gsb search "fix race condition in auth token refresh"
 
 Initialises semantic index/cache directories and saves model metadata.
 
-### `gsb index [--full] [--batch-size <n>] [--model <name>]`
+### `gsb index [--full] [--batch-size <n>] [--model <name>] [--include <glob>] [--exclude <glob>]`
 
 Indexes commit history into embeddings.
 
 - Default mode indexes commit metadata (hash/author/date/message/files)
 - `--full` also includes commit patch text for richer context (slower/larger)
+- `--include <glob>` narrows indexed files (repeatable)
+- `--exclude <glob>` removes indexed files (repeatable)
+- `.gsbignore` patterns are applied automatically when present
 
 ### `gsb search <query> [filters]`
 
@@ -156,9 +159,11 @@ Output formats:
 - `markdown`: clean markdown blocks, useful for notes and sharing
 - `json`: structured output for piping into scripts and LLM workflows
 
-### `gsb update [--full] [--batch-size <n>]`
+### `gsb update [--full] [--batch-size <n>] [--include <glob>] [--exclude <glob>]`
 
 Indexes only commits newer than the latest indexed commit.
+
+Supports the same `--include`, `--exclude`, and `.gsbignore` filtering behaviour as `gsb index`.
 
 ### `gsb stats`
 

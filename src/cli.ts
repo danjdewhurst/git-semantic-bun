@@ -38,6 +38,10 @@ function toWeightParser(flagName: string): (value: string) => number {
   };
 }
 
+function collectPattern(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
 const program = new Command();
 
 program
@@ -59,10 +63,14 @@ program
   .option("--full", "Include full commit patch in embedding text", false)
   .option("-m, --model <name>", "Embedding model name override")
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
-  .action(async (options: { full: boolean; model?: string; batchSize: string }) => {
-    const indexOptions: { full: boolean; batchSize: number; model?: string } = {
+  .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
+  .option("--exclude <glob>", "Exclude matching file paths (repeatable)", collectPattern, [])
+  .action(async (options: { full: boolean; model?: string; batchSize: string; include: string[]; exclude: string[] }) => {
+    const indexOptions: { full: boolean; batchSize: number; model?: string; include: string[]; exclude: string[] } = {
       full: options.full,
-      batchSize: limitParser(options.batchSize)
+      batchSize: limitParser(options.batchSize),
+      include: options.include,
+      exclude: options.exclude,
     };
 
     if (options.model !== undefined) {
@@ -117,9 +125,13 @@ program
   .description("Incrementally index new commits since the latest indexed commit")
   .option("--full", "Include full patch text in newly indexed commits")
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
-  .action(async (options: { full?: boolean; batchSize: string }) => {
-    const updateOptions: { batchSize: number; full?: boolean } = {
-      batchSize: limitParser(options.batchSize)
+  .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
+  .option("--exclude <glob>", "Exclude matching file paths (repeatable)", collectPattern, [])
+  .action(async (options: { full?: boolean; batchSize: string; include: string[]; exclude: string[] }) => {
+    const updateOptions: { batchSize: number; full?: boolean; include: string[]; exclude: string[] } = {
+      batchSize: limitParser(options.batchSize),
+      include: options.include,
+      exclude: options.exclude,
     };
 
     if (options.full !== undefined) {
