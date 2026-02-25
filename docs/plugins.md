@@ -2,6 +2,8 @@
 
 gsb supports an extensible plugin system. Plugins can add custom embedders, search strategies, scoring signals, output formatters, commit filters, lifecycle hooks, and CLI commands — all without forking.
 
+For a complete working example demonstrating multiple extension points, see [`examples/gsb-plugin-example.ts`](../examples/gsb-plugin-example.ts).
+
 ## Quick start
 
 A plugin is an ES module that default-exports a `GsbPlugin` object. Create a file at `.gsb/plugins/my-plugin.ts`:
