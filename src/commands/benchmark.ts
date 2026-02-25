@@ -2,7 +2,7 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
-import { lexicalScore, normaliseWeights, recencyScore } from "../core/ranking.ts";
+import { combineScores, lexicalScore, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { benchmarkRanking } from "../core/benchmark.ts";
 
@@ -70,7 +70,7 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
     const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
 
     return {
-      score: semanticScore * scoreWeights.semantic + lexical * scoreWeights.lexical + recency * scoreWeights.recency,
+      score: combineScores(semanticScore, lexical, recency, scoreWeights),
     };
   });
 

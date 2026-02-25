@@ -1,0 +1,32 @@
+{
+  "query": "fix token refresh race",
+  "weights": {
+    "semantic": 0.7,
+    "lexical": 0.2,
+    "recency": 0.1,
+    "recencyBoostEnabled": true
+  },
+  "cases": [
+    {
+      "id": "best-match",
+      "semantic": 0.92,
+      "lexical": 1,
+      "recency": 0.9,
+      "expectedRank": 1
+    },
+    {
+      "id": "semantic-only",
+      "semantic": 0.88,
+      "lexical": 0,
+      "recency": 0.8,
+      "expectedRank": 2
+    },
+    {
+      "id": "weak",
+      "semantic": 0.3,
+      "lexical": 0.25,
+      "recency": 0.2,
+      "expectedRank": 3
+    }
+  ]
+}

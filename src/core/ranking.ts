@@ -59,3 +59,12 @@ export function normaliseWeights(weights: ScoreWeights): ScoreWeights {
     recencyBoostEnabled: weights.recencyBoostEnabled,
   };
 }
+
+export function combineScores(
+  semantic: number,
+  lexical: number,
+  recency: number,
+  weights: ScoreWeights,
+): number {
+  return semantic * weights.semantic + lexical * weights.lexical + recency * weights.recency;
+}
