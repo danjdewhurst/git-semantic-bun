@@ -12,6 +12,8 @@
   - Warm search daemon usage, interactive commands, and JSONL mode.
 - [`compact-index.md`](./compact-index.md)
   - Compact index format, dtype support, and migration behaviour.
+- [`plugins.md`](./plugins.md)
+  - Plugin authoring guide — custom embedders, formatters, hooks, CLI commands, and more.
 
 ## Development
 

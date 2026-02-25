@@ -17,6 +17,7 @@ src/
 │   ├── stats.ts
 │   ├── doctor.ts
 │   └── benchmark.ts
+├── plugin-export.ts    # Public type barrel for plugin authors
 └── core/               # Domain logic
     ├── types.ts
     ├── constants.ts
@@ -40,7 +41,11 @@ src/
     ├── doctor.ts
     ├── perf-guardrails.ts
     ├── format.ts
-    └── parsing.ts
+    ├── parsing.ts
+    ├── plugin-types.ts
+    ├── plugin-config.ts
+    ├── plugin-loader.ts
+    └── plugin-registry.ts
 ```
 
 ## Data flow
@@ -211,6 +216,19 @@ Health checking and self-repair:
 - `benchmark.ts` — runs timed iterations comparing full-sort vs heap top-K ranking
 - `benchmark-history.ts` — persists results to `benchmarks.jsonl` in append-only JSONL format
 - `perf-guardrails.ts` — statistical summary (min/max/mean/p50/p95) and regression detection against baseline thresholds
+
+### Plugin system (`plugin-types.ts`, `plugin-config.ts`, `plugin-loader.ts`, `plugin-registry.ts`)
+
+Extensible plugin architecture allowing custom embedders, search strategies, scoring signals, output formatters, commit filters, lifecycle hooks, and CLI commands.
+
+- `plugin-types.ts` — canonical interfaces (`GsbPlugin`, `PluginContext`, `PluginHook`, `ScoringSignal`, `OutputFormatter`, etc.)
+- `plugin-config.ts` — loads `.gsbrc.json` from repo root and `~/.gsbrc.json` (global), merges per-key, interpolates `$VAR`/`${VAR}` environment variables in plugin config values
+- `plugin-loader.ts` — discovers plugins from npm packages (`gsb-plugin-*`), global (`~/.gsb/plugins/`), and repo (`.gsb/plugins/`) directories; validates shape and logs warnings for invalid plugins
+- `plugin-registry.ts` — `PluginRegistry` manages extension point registrations with qualified name collision handling (`pluginName:extensionName`); `runHookChain()` executes hooks as sequential transform pipelines with optional `softFail`; `buildRegistry()` orchestrates activation and registration
+
+Public types are exported via `plugin-export.ts` (mapped to `git-semantic-bun/plugin` in package.json exports).
+
+See [Plugins](./plugins.md) for the full authoring guide.
 
 ## Dependencies
 

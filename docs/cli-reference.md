@@ -222,6 +222,12 @@ gsb benchmark --history
 
 Compares baseline full-sort ranking against optimised heap top-K selection and reports the speedup ratio.
 
+## Global flags
+
+| Flag | Description |
+|---|---|
+| `--no-plugins` | Disable all plugin loading for this command |
+
 ## Global patterns
 
 ### Date formats
