@@ -2,8 +2,25 @@
 
 ## Guides
 
+- [`getting-started.md`](./getting-started.md)
+  - Installation, prerequisites, and quick start guide.
+- [`cli-reference.md`](./cli-reference.md)
+  - Full command and flag reference for all `gsb` commands.
+- [`search-ranking.md`](./search-ranking.md)
+  - Hybrid ranking algorithm, BM25, recency scoring, and weight tuning.
+- [`serve-daemon.md`](./serve-daemon.md)
+  - Warm search daemon usage, interactive commands, and JSONL mode.
 - [`compact-index.md`](./compact-index.md)
   - Compact index format, dtype support, and migration behaviour.
+
+## Development
+
+- [`architecture.md`](./architecture.md)
+  - Architecture overview, module map, and data flow diagrams.
+- [`testing.md`](./testing.md)
+  - Test suites, running tests, fake embeddings, and writing new tests.
+- [`ci-and-releases.md`](./ci-and-releases.md)
+  - CI pipeline, performance guardrails, release process, and binary builds.
 
 ## Planning
 
