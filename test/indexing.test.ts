@@ -81,7 +81,8 @@ describe("embedCommits", () => {
     expect(embedded).toHaveLength(3);
     expect(embedded[0]?.hash).toBe("a1");
     expect(embedded[1]?.hash).toBe("b2");
-    expect(embedded[2]?.embedding).toEqual([1, 2]);
+    expect(embedded[2]?.embedding[0]).toBeCloseTo(0.4472135955, 6);
+    expect(embedded[2]?.embedding[1]).toBeCloseTo(0.8944271910, 6);
   });
 
   it("throws when embedder returns mismatched vector count", async () => {

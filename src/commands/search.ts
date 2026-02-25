@@ -5,7 +5,7 @@ import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
 import { lexicalScore, normaliseWeights, recencyScore, type ScoreWeights } from "../core/ranking.ts";
-import { cosineSimilarity } from "../core/similarity.ts";
+import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import type { SearchFilters } from "../core/types.ts";
 
 export interface SearchOptions {
@@ -210,9 +210,11 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     throw new Error("Failed to generate query embedding.");
   }
 
+  const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
+
   const rankedResults: RankedResult[] = filtered
     .map((commit) => {
-      const semanticScore = cosineSimilarity(queryEmbedding, commit.embedding);
+      const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
       const lexical = lexicalScore(query, commit.message, commit.files);
       const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
       const score =

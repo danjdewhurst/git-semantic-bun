@@ -33,7 +33,7 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 ## Milestone 2 — Performance & Scale
 
 ### 2.1 Faster search path
-- [ ] Pre-normalise vectors at index time.
+- [x] Pre-normalise vectors at index time.
 - [ ] Add efficient top-k selection (avoid full sort for large sets).
 - [ ] Benchmark baseline vs optimised path.
 

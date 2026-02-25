@@ -1,4 +1,5 @@
 import type { Embedder } from "./embeddings.ts";
+import { normaliseVector } from "./similarity.ts";
 import type { GitCommit, IndexedCommit } from "./types.ts";
 
 export interface IndexingOptions {
@@ -65,7 +66,7 @@ export async function embedCommits(
         date: commit.date,
         message: commit.message,
         files: commit.files,
-        embedding: vector
+        embedding: normaliseVector(vector)
       });
     }
 
