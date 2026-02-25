@@ -1,20 +1,14 @@
-# Compact Index Format Design
+# Compact Index Format
 
-## Goals
+`git-semantic-bun` stores index data under `.git/semantic-index/`.
 
-- Reduce on-disk footprint versus `index.json`.
-- Improve load time for large repositories.
-- Keep metadata human-readable where useful.
-- Support safe migration from legacy JSON-only index files.
+## Current layout
 
-## Proposed layout
+- `index.json` — canonical metadata + compatibility fallback
+- `index.meta.json` — compact metadata sidecar
+- `index.vec.f32` or `index.vec.f16` — dense vector matrix (row-major)
 
-Store index under `.git/semantic-index/` as:
-
-- `index.meta.json` — metadata + commit descriptors (no dense vectors)
-- `index.vec.f32` — contiguous float32 vector matrix
-
-### `index.meta.json` shape
+## Compact metadata shape
 
 ```json
 {
@@ -24,9 +18,10 @@ Store index under `.git/semantic-index/` as:
   "lastUpdatedAt": "2026-02-25T00:10:00.000Z",
   "repositoryRoot": "/path/to/repo",
   "includePatch": false,
+  "checksum": "...",
   "vector": {
-    "file": "index.vec.f32",
-    "dtype": "float32",
+    "file": "index.vec.f16",
+    "dtype": "float16",
     "dimension": 384,
     "count": 12034,
     "normalised": true
@@ -44,22 +39,23 @@ Store index under `.git/semantic-index/` as:
 }
 ```
 
-### `index.vec.f32`
+## Dtype support
 
-- Binary little-endian float32 values.
-- Row-major layout, one embedding row per commit.
-- `vectorOffset` is row index (not byte offset).
+- `float32` (`f32`) — default, highest precision
+- `float16` (`f16`) — lower storage footprint, slight precision loss
 
-## Migration approach (high-level)
+Set at index/update time:
 
-1. Read legacy `index.json`.
-2. Write `index.meta.json` + `index.vec.f32`.
-3. Keep `index.json.bak` during migration.
-4. Validate vector count/dimension before switching active index.
-5. Allow fallback read path for legacy `index.json`.
+- `gsb index --vector-dtype f16`
+- `gsb update --vector-dtype f16`
 
-## Future extensions
+## Migration and fallback behaviour
 
-- Optional `float16` or quantised storage.
-- Optional memory-mapped vector loading.
-- Alternate ANN sidecar for large repos.
+- If compact sidecars are present and valid, they are used for reads.
+- If compact sidecars are missing, `index.json` is used.
+- `gsb doctor --fix` can regenerate missing compact sidecars from readable index data.
+
+## Notes
+
+- Vectors are expected to be pre-normalised for efficient cosine dot-product scoring.
+- `checksum` guards against stale/corrupt index metadata.

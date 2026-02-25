@@ -1,105 +1,51 @@
-# ROADMAP.md
+# ROADMAP
 
-Practical roadmap for improving retrieval quality, scalability, and developer ergonomics in `git-semantic-bun`.
+Current status and next priorities for `git-semantic-bun`.
 
-## Principles
+## Completed (v0.3.0)
 
-- Quality over speed: improve result relevance before adding bells and whistles.
-- Keep local-first and dependency-light by default.
-- Preserve transparent behaviour (`--explain`, deterministic scoring where possible).
-- Ship in thin vertical slices with tests for every behavioural change.
+- Retrieval quality improvements
+  - weighted embedding payloads
+  - hybrid ranking (`semantic + BM25-style lexical + recency`)
+  - explainable score breakdown
+- Performance and storage
+  - pre-normalised vectors
+  - heap-based top-k ranking
+  - benchmark command + history (`--save`, `--history`)
+  - compact sidecar index with `f32` and optional `f16`
+- Robustness
+  - rewritten-history detection and recovery in `update`
+  - checksum and stricter index validation
+  - `doctor` and `doctor --fix`
+- UX and output
+  - snippets, `--snippet-lines`, `--min-score`
+  - include/exclude patterns + `.gsbignore`
+- Quality gates
+  - e2e + golden ranking + performance smoke tests
+  - CI now runs lint + typecheck + test
 
-## Milestone 1 — Retrieval Quality (next)
+## Active roadmap (v0.4)
 
-### 1.1 Improve embedding input construction
-- [x] Replace current `hash/author/date/message/files` flat payload with weighted sections:
-  - [x] `message` (highest signal)
-  - [x] `files` (medium signal)
-  - [x] optional patch summary (controlled by `--full`)
-- [x] Remove low-signal metadata (`hash`, raw timestamp) from embedding text.
-- [x] Add tests verifying text construction rules.
+### 1) Multi-model workflows
 
-**Success criteria:** better top-5 relevance on representative queries without regression in speed >15%.
+- [ ] Support multiple model indexes in parallel
+- [ ] Allow model selection at query time (`search --model`)
+- [ ] Add model-aware benchmark comparison mode
 
-### 1.2 Add hybrid scoring (semantic + lexical + recency)
-- [x] Introduce lexical term overlap/BM25-style score.
-- [x] Add optional recency boost.
-- [x] Implement weighted final score (configurable defaults).
-- [x] Add `--explain` output showing score components.
-- [x] Add ranking tests with fixed fixtures and expected order.
+### 2) Search ergonomics
 
-**Success criteria:** improved precision for exact-token queries while preserving semantic wins.
+- [ ] Add `--query-file` for long prompts
+- [ ] Add output-mode defaults for `--min-score`
+- [ ] Improve no-result guidance with suggested filters/thresholds
 
-## Milestone 2 — Performance & Scale
+### 3) Scale path
 
-### 2.1 Faster search path
-- [x] Pre-normalise vectors at index time.
-- [x] Add efficient top-k selection (avoid full sort for large sets).
-- [x] Benchmark baseline vs optimised path.
+- [ ] Evaluate ANN backend for large repos (optional mode)
+- [ ] Prototype memory-mapped vector loads
+- [ ] Add large-repo benchmark fixture/profile
 
-### 2.2 Index storage improvements
-- [x] Design compact index format (binary vectors + JSON metadata sidecar).
-- [x] Support migration from legacy `index.json`.
-- [x] Add `gsb stats` fields for vector bytes and load time.
+## Docs
 
-**Success criteria:** materially reduced index size and faster startup/search on large repos.
-
-## Milestone 3 — Robustness
-
-### 3.1 Safer incremental updates
-- [x] Detect divergent history (rebase/force-push).
-- [x] Add automatic recovery strategy (windowed reindex or full reindex fallback).
-- [x] Surface clear warnings when index lineage is invalid.
-
-### 3.2 Validation and failure handling
-- [x] Harden index validation with clearer error messages.
-- [x] Add checksum/version metadata for future migrations.
-
-**Success criteria:** no silent stale-index behaviour in rewritten-history workflows.
-
-## Milestone 4 — UX & Agent Workflows
-
-### 4.1 Better output
-- [x] Optional diff snippets in search results (`--snippets`).
-- [x] JSON output includes score breakdown fields.
-- [x] Add `--min-score` to suppress weak matches.
-
-### 4.2 Agent-friendly commands
-- [x] Add `gsb doctor` to validate environment/index/model cache.
-- [x] Add `gsb benchmark` for model/ranking comparisons.
-
-**Success criteria:** easier to trust, debug, and automate in coding-agent pipelines.
-
-## Milestone 5 — Testing & CI hardening
-
-- [x] Add end-to-end tests creating temp git repos and running `init/index/search/update`.
-- [x] Add ranking regression fixtures (golden queries).
-- [x] Add performance smoke test thresholds.
-- [x] Ensure CI runs tests + typecheck + lint for all PRs.
-
-## Nice-to-have backlog
-
-- [ ] Path include/exclude patterns for indexing.
-- [ ] Multi-model index support with per-query model selection.
-- [ ] Persistent search daemon mode to avoid repeated model cold starts.
-- [ ] Optional ANN backend for very large repositories.
-
-## Migrated from previous README roadmap
-
-The old README checklist items are preserved here:
-
-- Optional compact binary index format for very large repos (tracked in Milestone 2.2)
-- Optional commit diff snippets in search output (tracked in Milestone 4.1)
-- Multi-model benchmark command (tracked in Milestone 4.2)
-- Ignore/include path patterns for indexing (tracked in Nice-to-have backlog)
-
-## Next release planning
-
-v0.3.0 scoped plan: [`docs/v0.3.0-plan.md`](./docs/v0.3.0-plan.md)
-
-## Delivery plan
-
-1. **Ship Milestone 1 first** (highest user-visible value).
-2. Land in small PRs (one feature slice per PR).
-3. Update README usage/docs per shipped flag.
-4. Keep roadmap checklist current as items land.
+- Historical implementation plan: [`docs/v0.3.0-plan.md`](./docs/v0.3.0-plan.md)
+- Compact index reference: [`docs/compact-index.md`](./docs/compact-index.md)
+- Documentation map: [`docs/README.md`](./docs/README.md)
