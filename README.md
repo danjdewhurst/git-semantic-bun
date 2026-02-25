@@ -1,29 +1,32 @@
 # git-semantic-bun
 
-`git-semantic-bun` is a local-first semantic git history search CLI built with Bun + TypeScript.
+Semantic search for git history, built with Bun.
 
-- CLI package: `git-semantic-bun`
-- Binary command: `gsb`
-- Embeddings: local open model via `@xenova/transformers` (`feature-extraction`)
-- Index file: `.git/semantic-index/index.json`
+Stop guessing commit message keywords. Describe what changed in plain English and get the most relevant commits back.
 
-## Features
+## Why this exists
 
-- `gsb init`: verifies git repo and initializes semantic index/cache directories
-- `gsb index`: indexes commit history into embeddings (`--full` optionally includes full patch text)
-- `gsb search <query>`: semantic search with cosine similarity
-- `gsb update`: incrementally indexes commits newer than the latest indexed hash
-- `gsb stats`: index metadata and size overview
+Traditional git search is lexical:
 
-Search filters:
+- `git log --grep "race"` misses commits described as “concurrency”
+- `git log -S "mutex"` only works when exact code tokens were used
 
-- `--author <name>`
-- `--after <date>`
-- `--before <date>`
-- `--file <path-substring>`
-- `-n, --limit <count>`
+`git-semantic-bun` indexes commits as embeddings, so queries match **meaning**, not just exact words.
+
+## What you get
+
+- Local-first CLI (`gsb`) with no paid API dependency
+- Semantic commit indexing + cosine similarity search
+- Incremental updates (`gsb update`) to avoid full reindex every time
+- Practical filters (`--author`, `--after`, `--before`, `--file`, `--limit`)
+- Transparent index storage at `.git/semantic-index/index.json`
 
 ## Install
+
+### Prerequisites
+
+- Bun 1.3+
+- Git repository to index
 
 ### Local development
 
@@ -37,80 +40,108 @@ Run directly:
 bun run src/cli.ts --help
 ```
 
-### Optional global command via Bun link
+### Optional global command
 
 ```bash
 bun link
-# then use:
+# then:
 gsb --help
 ```
 
-## Usage
-
-Initialize repository metadata/cache:
+## Quick start
 
 ```bash
+# 1) Initialise metadata/cache
 gsb init
-```
 
-Build full semantic index:
-
-```bash
+# 2) Build semantic index from history
 gsb index
+
+# 3) Search by meaning
+gsb search "fix race condition in auth token refresh"
 ```
 
-Include full patch content in embeddings:
+## Commands
+
+### `gsb init`
+
+Initialises semantic index/cache directories and saves model metadata.
+
+### `gsb index [--full] [--batch-size <n>] [--model <name>]`
+
+Indexes commit history into embeddings.
+
+- Default mode indexes commit metadata (hash/author/date/message/files)
+- `--full` also includes commit patch text for richer context (slower/larger)
+
+### `gsb search <query> [filters]`
+
+Runs semantic search over indexed commits.
+
+Filters:
+
+- `--author <name>`
+- `--after <date>`
+- `--before <date>`
+- `--file <path-substring>`
+- `-n, --limit <count>`
+
+### `gsb update [--full] [--batch-size <n>]`
+
+Indexes only commits newer than the latest indexed commit.
+
+### `gsb stats`
+
+Shows index count, model, size, and timestamps.
+
+## Examples
 
 ```bash
-gsb index --full
+gsb search "refactor payment retry logic"
+gsb search "fix flaky parser" --after 2025-01-01 --author dan
+gsb search "optimise caching" --file src/core -n 5
 ```
 
-Search:
+## Before vs after
+
+Before:
+
+- Manual `git log` digging
+- Lots of false positives
+- Easy to miss relevant commits with different wording
+
+After:
+
+- Natural-language query
+- Relevance-scored results
+- Faster recovery of prior fixes and design decisions
+
+## Development
 
 ```bash
-gsb search "fix flaky parser for merge commits"
-```
-
-Search with filters:
-
-```bash
-gsb search "optimize performance" --author "alice" --after 2025-01-01 --file src/core -n 5
-```
-
-Incremental update:
-
-```bash
-gsb update
-```
-
-Show stats:
-
-```bash
-gsb stats
-```
-
-## Scripts
-
-```bash
-bun run test
+bun test
 bun run typecheck
 bun run lint
 bun run build
 ```
 
-## Practical Notes
+## Practical notes
 
-- Everything runs locally. No paid API dependencies are used.
-- First embedding run downloads the selected model once, then reuses local cache under `.git/semantic-index/cache/`.
-- `--full` gives richer semantics but can be substantially slower and produces larger index files.
-- Medium-size repos are handled with batch embedding and progress output.
-- The index stores vectors in JSON for transparency; very large histories will increase `.git/semantic-index/index.json` size.
+- Everything runs locally.
+- First run downloads the embedding model once, then reuses local cache under `.git/semantic-index/cache/`.
+- JSON index is transparent and easy to inspect; large repos will produce larger index files.
 
-## Troubleshooting
+## Roadmap
 
-- `Error: not a git repository`:
-  Run commands from inside a git repo.
-- `Index is empty` / `No index found`:
-  Run `gsb index` first.
-- Slow first run:
-  Model download + initial embedding generation is expected.
+- [ ] Optional compact binary index format for very large repos
+- [ ] Optional commit diff snippets in search output
+- [ ] Multi-model benchmark command
+- [ ] Ignore/include path patterns for indexing
+
+## Contributing
+
+PRs are welcome. Please use conventional commits (`feat:`, `fix:`, `docs:`, etc.) and include tests for behavioural changes.
+
+## Licence
+
+MIT — see [LICENSE](./LICENSE).
