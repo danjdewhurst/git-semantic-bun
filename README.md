@@ -285,10 +285,9 @@ Rule of thumb:
 
 ## Roadmap
 
-- [ ] Optional compact binary index format for very large repos
-- [ ] Optional commit diff snippets in search output
-- [ ] Multi-model benchmark command
-- [ ] Ignore/include path patterns for indexing
+Roadmap planning now lives in a dedicated file: [ROADMAP.md](./ROADMAP.md).
+
+It includes milestones, success criteria, and progress tracking.
 
 ## Credits
 

@@ -84,6 +84,15 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 - [ ] Persistent search daemon mode to avoid repeated model cold starts.
 - [ ] Optional ANN backend for very large repositories.
 
+## Migrated from previous README roadmap
+
+The old README checklist items are preserved here:
+
+- Optional compact binary index format for very large repos (tracked in Milestone 2.2)
+- Optional commit diff snippets in search output (tracked in Milestone 4.1)
+- Multi-model benchmark command (tracked in Milestone 4.2)
+- Ignore/include path patterns for indexing (tracked in Nice-to-have backlog)
+
 ## Delivery plan
 
 1. **Ship Milestone 1 first** (highest user-visible value).
