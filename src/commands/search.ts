@@ -6,6 +6,7 @@ import { resolveRepoPaths } from "../core/paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
 import { lexicalScore, normaliseWeights, recencyScore, type ScoreWeights } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
+import { selectTopKByScore } from "../core/topk.ts";
 import type { SearchFilters } from "../core/types.ts";
 
 export interface SearchOptions {
@@ -212,32 +213,32 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
-  const rankedResults: RankedResult[] = filtered
-    .map((commit) => {
-      const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
-      const lexical = lexicalScore(query, commit.message, commit.files);
-      const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
-      const score =
-        semanticScore * scoreWeights.semantic + lexical * scoreWeights.lexical + recency * scoreWeights.recency;
+  const scored = filtered.map((commit) => {
+    const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
+    const lexical = lexicalScore(query, commit.message, commit.files);
+    const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
+    const score =
+      semanticScore * scoreWeights.semantic + lexical * scoreWeights.lexical + recency * scoreWeights.recency;
 
-      return {
-        hash: commit.hash,
-        author: commit.author,
-        date: commit.date,
-        message: commit.message,
-        files: commit.files,
-        score,
-        semanticScore,
-        lexicalScore: lexical,
-        recencyScore: recency,
-      };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map((result, indexOfResult) => ({
+    return {
+      hash: commit.hash,
+      author: commit.author,
+      date: commit.date,
+      message: commit.message,
+      files: commit.files,
+      score,
+      semanticScore,
+      lexicalScore: lexical,
+      recencyScore: recency,
+    };
+  });
+
+  const rankedResults: RankedResult[] = selectTopKByScore(scored, limit, (entry) => entry.score).map(
+    (result, indexOfResult) => ({
       rank: indexOfResult + 1,
       ...result,
-    }));
+    }),
+  );
 
   if (rankedResults.length === 0) {
     console.log("No results.");
