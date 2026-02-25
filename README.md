@@ -98,6 +98,19 @@ Ranking/output controls:
 - `--snippets`
 - `--snippet-lines <count>`
 
+### `gsb serve`
+
+Runs a warm in-process search daemon (one query per stdin line) to avoid repeated cold starts.
+
+- Commands: `:reload`, `:quit`
+- Default output is JSON per query; use `--jsonl` for compact one-line JSON objects.
+
+Example:
+
+```bash
+printf "token refresh race\nretry backoff\n:quit\n" | gsb serve --jsonl -n 5
+```
+
 ### `gsb update`
 
 Incrementally indexes commits newer than the latest indexed commit.

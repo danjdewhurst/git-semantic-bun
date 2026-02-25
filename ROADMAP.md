@@ -33,7 +33,7 @@ Current priorities for `git-semantic-bun`.
 
 ### Now — performance (primary)
 
-- [ ] Add daemon mode (`gsb serve`) for warm query reuse
+- [x] Add daemon mode (`gsb serve`) for warm query reuse
 - [ ] Cache BM25 lexical stats per index checksum
 - [ ] Optimise scoring hot path to reduce allocation/GC pressure
 - [ ] Prototype memory-mapped/lazy vector loading

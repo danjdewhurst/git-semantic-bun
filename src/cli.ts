@@ -5,6 +5,7 @@ import { runDoctor } from "./commands/doctor.ts";
 import { runIndex } from "./commands/index.ts";
 import { runInit } from "./commands/init.ts";
 import { runSearch } from "./commands/search.ts";
+import { runServe } from "./commands/serve.ts";
 import { runStats } from "./commands/stats.ts";
 import { runUpdate } from "./commands/update.ts";
 import { DEFAULT_BATCH_SIZE, DEFAULT_LIMIT, DEFAULT_MODEL } from "./core/constants.ts";
@@ -168,6 +169,53 @@ program
       },
     ) => {
       await runSearch(query, options);
+    },
+  );
+
+program
+  .command("serve")
+  .description("Run warm in-process search daemon (query per stdin line)")
+  .option("--author <author>", "Default author filter")
+  .option("--after <date>", "Default after date filter", toDateParser("--after"))
+  .option("--before <date>", "Default before date filter", toDateParser("--before"))
+  .option("--file <path>", "Default file filter")
+  .option("-n, --limit <count>", "Max results", limitParser, DEFAULT_LIMIT)
+  .option(
+    "--semantic-weight <weight>",
+    "Semantic score weight (0..1)",
+    toWeightParser("--semantic-weight"),
+    0.75,
+  )
+  .option(
+    "--lexical-weight <weight>",
+    "Lexical score weight (0..1)",
+    toWeightParser("--lexical-weight"),
+    0.2,
+  )
+  .option(
+    "--recency-weight <weight>",
+    "Recency score weight (0..1)",
+    toWeightParser("--recency-weight"),
+    0.05,
+  )
+  .option("--no-recency-boost", "Disable recency scoring boost")
+  .option("--min-score <score>", "Minimum final score threshold", Number.parseFloat)
+  .option("--jsonl", "Emit one compact JSON object per query line", false)
+  .action(
+    async (options: {
+      author?: string;
+      after?: Date;
+      before?: Date;
+      file?: string;
+      limit: number;
+      semanticWeight: number;
+      lexicalWeight: number;
+      recencyWeight: number;
+      recencyBoost: boolean;
+      minScore?: number;
+      jsonl: boolean;
+    }) => {
+      await runServe(options);
     },
   );
 

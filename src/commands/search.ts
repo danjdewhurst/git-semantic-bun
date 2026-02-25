@@ -1,4 +1,5 @@
 import { DEFAULT_LIMIT } from "../core/constants.ts";
+import type { Embedder } from "../core/embeddings.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { getCommitDiffSnippet } from "../core/git.ts";
@@ -14,7 +15,7 @@ import {
 } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { selectTopKByScore } from "../core/topk.ts";
-import type { SearchFilters } from "../core/types.ts";
+import type { SearchFilters, SemanticIndex } from "../core/types.ts";
 
 export interface SearchOptions {
   author?: string;
@@ -47,7 +48,7 @@ interface RankedResult {
   snippet?: string;
 }
 
-interface SearchOutputPayload {
+export interface SearchOutputPayload {
   query: string;
   model: string;
   format: SearchOutputFormat;
@@ -189,9 +190,18 @@ function renderMarkdownOutput(payload: SearchOutputPayload): void {
   }
 }
 
-export async function runSearch(query: string, options: SearchOptions): Promise<void> {
-  const paths = resolveRepoPaths();
-  const index = loadIndex(paths.indexPath);
+interface SearchExecutionContext {
+  index: SemanticIndex;
+  embedder: Embedder;
+  repoRoot: string;
+}
+
+export async function executeSearch(
+  query: string,
+  options: SearchOptions,
+  context: SearchExecutionContext,
+): Promise<SearchOutputPayload | null> {
+  const { index, embedder, repoRoot } = context;
 
   if (index.commits.length === 0) {
     throw new Error("Index is empty. Run `gsb index` first.");
@@ -226,11 +236,9 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
 
   const filtered = applyFilters(index.commits, filters);
   if (filtered.length === 0) {
-    console.log("No indexed commits matched the provided filters.");
-    return;
+    return null;
   }
 
-  const embedder = await createEmbedder(index.modelName, paths.cacheDir);
   const [queryEmbedding] = await embedder.embedBatch([query]);
 
   if (!queryEmbedding) {
@@ -271,22 +279,21 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     (result) => result.score >= minScore,
   );
 
+  if (rankedResultsRaw.length === 0) {
+    return null;
+  }
+
   const rankedResults: RankedResult[] = rankedResultsRaw.map((result, indexOfResult) => ({
     rank: indexOfResult + 1,
     ...result,
     ...(snippets
       ? {
-          snippet: getCommitDiffSnippet(paths.repoRoot, result.hash, snippetLines),
+          snippet: getCommitDiffSnippet(repoRoot, result.hash, snippetLines),
         }
       : {}),
   }));
 
-  if (rankedResults.length === 0) {
-    console.log("No results.");
-    return;
-  }
-
-  const payload = buildPayload(
+  return buildPayload(
     query,
     index.modelName,
     format,
@@ -298,13 +305,30 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     filters,
     rankedResults,
   );
+}
 
-  if (format === "json") {
+export async function runSearch(query: string, options: SearchOptions): Promise<void> {
+  const paths = resolveRepoPaths();
+  const index = loadIndex(paths.indexPath);
+  const embedder = await createEmbedder(index.modelName, paths.cacheDir);
+
+  const payload = await executeSearch(query, options, {
+    index,
+    embedder,
+    repoRoot: paths.repoRoot,
+  });
+
+  if (!payload) {
+    console.log("No results.");
+    return;
+  }
+
+  if (payload.format === "json") {
     console.log(JSON.stringify(payload, null, 2));
     return;
   }
 
-  if (format === "markdown") {
+  if (payload.format === "markdown") {
     renderMarkdownOutput(payload);
     return;
   }
