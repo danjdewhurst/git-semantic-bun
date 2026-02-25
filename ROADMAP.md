@@ -5,7 +5,7 @@ Current priorities for `git-semantic-bun`.
 ## Status
 
 - ✅ v0.3.0 delivered
-- 🚧 v0.4 in progress
+- ✅ v0.4 delivered
 
 ## v0.3.0 delivered (summary)
 
