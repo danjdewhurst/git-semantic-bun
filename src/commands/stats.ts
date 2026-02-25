@@ -7,19 +7,27 @@ import {
   getVectorSizeBytes,
   loadIndex,
 } from "../core/index-store.ts";
+import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 
-export async function runStats(): Promise<void> {
+export interface StatsOptions {
+  model?: string;
+}
+
+export async function runStats(options: StatsOptions = {}): Promise<void> {
   const paths = resolveRepoPaths();
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
 
   const loadStart = performance.now();
-  const index = loadIndex(paths.indexPath);
+  const index = loadIndex(targetPaths.indexPath);
   const loadEnd = performance.now();
 
-  const bytes = getIndexSizeBytes(paths.indexPath);
-  const vectorBytes = getVectorSizeBytes(paths.indexPath);
-  const vectorDtype = getVectorDtype(paths.indexPath);
-  const annInfo = getAnnIndexInfo(paths.indexPath);
+  const bytes = getIndexSizeBytes(targetPaths.indexPath);
+  const vectorBytes = getVectorSizeBytes(targetPaths.indexPath);
+  const vectorDtype = getVectorDtype(targetPaths.indexPath);
+  const annInfo = getAnnIndexInfo(targetPaths.indexPath);
 
   console.log(`Indexed commits : ${index.commits.length}`);
   console.log(`Model           : ${index.modelName}`);

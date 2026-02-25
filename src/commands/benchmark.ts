@@ -9,12 +9,14 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { bm25ScoresFromCache, getLexicalCacheForIndex } from "../core/lexical-cache.ts";
+import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import { combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { type AnnIndexHandle, AnnSearch, ExactSearch } from "../core/vector-search.ts";
 
 export interface BenchmarkOptions {
+  model?: string;
   author?: string;
   after?: Date;
   before?: Date;
@@ -32,14 +34,17 @@ export interface BenchmarkOptions {
 
 export async function runBenchmark(query: string, options: BenchmarkOptions): Promise<void> {
   const paths = resolveRepoPaths();
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
 
   if (options.history) {
-    const entries = loadBenchmarkHistory(paths.benchmarkHistoryPath);
+    const entries = loadBenchmarkHistory(targetPaths.benchmarkHistoryPath);
     console.log(renderBenchmarkHistorySummary(entries));
     return;
   }
 
-  const index = loadIndex(paths.indexPath);
+  const index = loadIndex(targetPaths.indexPath);
 
   const filters: {
     author?: string;
@@ -108,7 +113,7 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
   console.log(`Speedup: ${result.speedup.toFixed(2)}x`);
 
   if (options.save) {
-    saveBenchmarkHistory(paths.benchmarkHistoryPath, {
+    saveBenchmarkHistory(targetPaths.benchmarkHistoryPath, {
       timestamp: new Date().toISOString(),
       query,
       candidates: scored.length,
@@ -118,7 +123,7 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
       optimisedMs: result.optimisedMs,
       speedup: result.speedup,
     });
-    console.log(`Saved benchmark run to ${paths.benchmarkHistoryPath}`);
+    console.log(`Saved benchmark run to ${targetPaths.benchmarkHistoryPath}`);
   }
 
   if (options.ann) {
@@ -127,7 +132,7 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
       filtered,
       options.limit,
       options.iterations,
-      paths.annIndexPath,
+      targetPaths.annIndexPath,
     );
   }
 }

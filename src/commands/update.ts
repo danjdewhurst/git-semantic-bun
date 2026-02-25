@@ -3,11 +3,13 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { commitExists, isAncestorCommit, readCommits } from "../core/git.ts";
 import { loadIndex, saveIndexWithAnn } from "../core/index-store.ts";
 import { dedupeCommits, embedCommits } from "../core/indexing.ts";
+import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { validateBatchSize } from "../core/parsing.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
 import { filterCommitsByPatterns, loadGsbIgnorePatterns } from "../core/patterns.ts";
 
 export interface UpdateOptions {
+  model?: string;
   full?: boolean;
   batchSize: number;
   include: string[];
@@ -46,7 +48,10 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   const paths = resolveRepoPaths();
   ensureSemanticDirectories(paths);
 
-  const index = loadIndex(paths.indexPath);
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
+  const index = loadIndex(targetPaths.indexPath);
   const latestHash = newestIndexedCommitHash(index.commits);
 
   if (!latestHash) {
@@ -112,7 +117,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
-  await saveIndexWithAnn(paths.indexPath, {
+  await saveIndexWithAnn(targetPaths.indexPath, {
     ...index,
     includePatch,
     vectorDtype: options.vectorDtype ?? index.vectorDtype ?? "f32",
@@ -120,5 +125,5 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
     commits: merged,
   });
 
-  console.log(`Updated index with ${newlyIndexed.length} commits at ${paths.indexPath}`);
+  console.log(`Updated index with ${newlyIndexed.length} commits at ${targetPaths.indexPath}`);
 }

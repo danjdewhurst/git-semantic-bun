@@ -9,6 +9,7 @@ import {
   bm25ScoresFromCache,
   getLexicalCacheForIndex,
 } from "../core/lexical-cache.ts";
+import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import {
@@ -23,6 +24,7 @@ import type { SearchFilters, SearchStrategyName, SemanticIndex } from "../core/t
 import { type AnnIndexHandle, createSearchStrategy } from "../core/vector-search.ts";
 
 export interface SearchOptions {
+  model?: string;
   author?: string;
   after?: Date;
   before?: Date;
@@ -338,12 +340,15 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
   const { loadAnnIndex } = await import("../core/ann-index.ts");
 
   const paths = resolveRepoPaths();
-  const index = loadIndex(paths.indexPath);
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
+  const index = loadIndex(targetPaths.indexPath);
   const embedder = await createEmbedder(index.modelName, paths.cacheDir);
 
   let annHandle: AnnIndexHandle | undefined;
-  if (existsSync(paths.annIndexPath)) {
-    annHandle = await loadAnnIndex(paths.annIndexPath, 384);
+  if (existsSync(targetPaths.annIndexPath)) {
+    annHandle = await loadAnnIndex(targetPaths.annIndexPath, 384);
   }
 
   const payload = await executeSearch(query, options, {

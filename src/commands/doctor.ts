@@ -1,15 +1,28 @@
 import { runDoctorChecks, runDoctorFixes } from "../core/doctor.ts";
+import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 
 export interface DoctorOptions {
+  model?: string;
   fix?: boolean;
 }
 
 export async function runDoctor(options: DoctorOptions = {}): Promise<void> {
   const paths = resolveRepoPaths();
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
+  const doctorPaths = {
+    ...paths,
+    indexPath: targetPaths.indexPath,
+    compactMetaPath: targetPaths.compactMetaPath,
+    compactVectorPath: targetPaths.compactVectorPath,
+    benchmarkHistoryPath: targetPaths.benchmarkHistoryPath,
+    annIndexPath: targetPaths.annIndexPath,
+  };
 
   if (options.fix) {
-    const fixed = await runDoctorFixes(paths);
+    const fixed = await runDoctorFixes(doctorPaths);
     console.log("Applied fixes:");
     for (const action of fixed.actions) {
       console.log(`- ${action}`);
@@ -20,7 +33,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<void> {
     console.log("");
   }
 
-  const checks = runDoctorChecks(paths);
+  const checks = runDoctorChecks(doctorPaths);
 
   let failures = 0;
   for (const check of checks) {

@@ -126,6 +126,7 @@ Runs semantic search over indexed commits.
 --after <date>        commits after date
 --before <date>       commits before date
 --file <path>         path substring filter
+-m, --model <name>    select model index
 -n, --limit <count>   max results (max 200)
 ```
 
@@ -159,14 +160,17 @@ Supports all `search` filter and ranking flags, plus `--jsonl` for compact JSON 
 ### `gsb update`
 
 Incrementally indexes commits newer than the latest indexed commit. Supports the same options as `gsb index`. Includes rewritten-history safety checks (rebase/force-push detection + recovery window).
+Use `--model <name>` to update a specific model index.
 
 ### `gsb stats`
 
 Shows index and vector stats — size, dtype, timestamps, load time.
+Use `--model <name>` to inspect a specific model index.
 
 ### `gsb doctor`
 
 Checks index health and metadata/cache readiness. `--fix` performs safe, non-destructive repairs.
+Use `--model <name>` to check or repair one model index.
 
 ### `gsb benchmark [query]`
 
@@ -175,6 +179,7 @@ Benchmarks ranking path (baseline full-sort vs heap top-k).
 ```
 -i, --iterations <count>   iterations (default: 20)
 -n, --limit <count>        max results (default: 10)
+--model <name>             benchmark model index
 --save                     append to benchmarks.jsonl
 --history                  print saved history
 --ann                      compare exact vs ANN
@@ -218,12 +223,15 @@ All data lives under `.git/semantic-index/` — nothing outside your repo:
 
 ```
 .git/semantic-index/
-├── index.json              # commit metadata + embeddings map
-├── index.meta.json         # model info, timestamps, checksums
-├── index.vec.f32           # vectors (or .f16)
-├── index.ann.usearch       # optional ANN index
+├── models/
+│   └── <model-key>/
+│       ├── index.json
+│       ├── index.meta.json
+│       ├── index.vec.f32   # or .f16
+│       ├── index.ann.usearch
+│       └── benchmarks.jsonl
 ├── cache/                  # embedding cache
-└── benchmarks.jsonl        # benchmark history (opt-in)
+└── index.json              # legacy single-index layout (still supported)
 ```
 
 ---

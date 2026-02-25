@@ -4,6 +4,7 @@ import { readCommits } from "../core/git.ts";
 import { saveIndexWithAnn } from "../core/index-store.ts";
 import { embedCommits } from "../core/indexing.ts";
 import { loadMetadata } from "../core/metadata.ts";
+import { ensureIndexArtifactDirectory, resolveModelIndexPaths } from "../core/model-paths.ts";
 import { validateBatchSize } from "../core/parsing.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
 import { filterCommitsByPatterns, loadGsbIgnorePatterns } from "../core/patterns.ts";
@@ -59,7 +60,9 @@ export async function runIndex(options: IndexOptions): Promise<void> {
   });
 
   const now = new Date().toISOString();
-  await saveIndexWithAnn(paths.indexPath, {
+  const targetPaths = resolveModelIndexPaths(paths, modelName);
+  ensureIndexArtifactDirectory(targetPaths);
+  await saveIndexWithAnn(targetPaths.indexPath, {
     version: 1,
     modelName,
     createdAt: now,
@@ -70,5 +73,5 @@ export async function runIndex(options: IndexOptions): Promise<void> {
     commits: indexedCommits,
   });
 
-  console.log(`Saved index to ${paths.indexPath}`);
+  console.log(`Saved index to ${targetPaths.indexPath}`);
 }

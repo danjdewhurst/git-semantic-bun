@@ -115,6 +115,7 @@ program
   .command("search")
   .description("Search indexed commits with semantic similarity")
   .argument("<query>", "Natural language query")
+  .option("--model <name>", "Model index to query (defaults to metadata model)")
   .option("--author <author>", "Filter by author substring")
   .option("--after <date>", "Filter commits after this date", toDateParser("--after"))
   .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
@@ -154,6 +155,7 @@ program
     async (
       query: string,
       options: {
+        model?: string;
         author?: string;
         after?: Date;
         before?: Date;
@@ -178,6 +180,7 @@ program
 program
   .command("serve")
   .description("Run warm in-process search daemon (query per stdin line)")
+  .option("--model <name>", "Model index to serve (defaults to metadata model)")
   .option("--author <author>", "Default author filter")
   .option("--after <date>", "Default after date filter", toDateParser("--after"))
   .option("--before <date>", "Default before date filter", toDateParser("--before"))
@@ -207,6 +210,7 @@ program
   .option("--strategy <strategy>", "Search strategy: auto, exact, ann", parseStrategyOption, "auto")
   .action(
     async (options: {
+      model?: string;
       author?: string;
       after?: Date;
       before?: Date;
@@ -227,6 +231,7 @@ program
 program
   .command("update")
   .description("Incrementally index new commits since the latest indexed commit")
+  .option("--model <name>", "Model index to update (defaults to metadata model)")
   .option("--full", "Include full patch text in newly indexed commits")
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
@@ -238,6 +243,7 @@ program
   )
   .action(
     async (options: {
+      model?: string;
       full?: boolean;
       batchSize: string;
       include: string[];
@@ -245,6 +251,7 @@ program
       vectorDtype?: "f32" | "f16";
     }) => {
       const updateOptions: {
+        model?: string;
         batchSize: number;
         full?: boolean;
         include: string[];
@@ -259,6 +266,9 @@ program
       if (options.full !== undefined) {
         updateOptions.full = options.full;
       }
+      if (options.model !== undefined) {
+        updateOptions.model = options.model;
+      }
       if (options.vectorDtype !== undefined) {
         updateOptions.vectorDtype = options.vectorDtype;
       }
@@ -270,15 +280,17 @@ program
 program
   .command("stats")
   .description("Show semantic index stats")
-  .action(async () => {
-    await runStats();
+  .option("--model <name>", "Model index to inspect (defaults to metadata model)")
+  .action(async (options: { model?: string }) => {
+    await runStats(options);
   });
 
 program
   .command("doctor")
   .description("Check semantic index health, metadata, and cache readiness")
+  .option("--model <name>", "Model index to check/fix (defaults to metadata model)")
   .option("--fix", "Attempt safe non-destructive repairs", false)
-  .action(async (options: { fix: boolean }) => {
+  .action(async (options: { model?: string; fix: boolean }) => {
     await runDoctor(options);
   });
 
@@ -286,6 +298,7 @@ program
   .command("benchmark")
   .description("Benchmark baseline full sort vs optimised heap top-k ranking")
   .argument("[query]", "Natural language query")
+  .option("--model <name>", "Model index to benchmark (defaults to metadata model)")
   .option("--author <author>", "Filter by author substring")
   .option("--after <date>", "Filter commits after this date", toDateParser("--after"))
   .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
@@ -318,6 +331,7 @@ program
     async (
       query: string | undefined,
       options: {
+        model?: string;
         author?: string;
         after?: Date;
         before?: Date;

@@ -44,8 +44,8 @@ Details and targets: [`docs/plans/v0.4-performance.md`](./docs/plans/v0.4-perfor
 
 ### Next — multi-model workflows
 
-- [ ] Support multiple model indexes in parallel
-- [ ] Allow model selection at query time (`search --model`)
+- [x] Support multiple model indexes in parallel
+- [x] Allow model selection at query time (`search --model`)
 - [ ] Add model-aware benchmark comparison mode
 
 ### Later — search ergonomics

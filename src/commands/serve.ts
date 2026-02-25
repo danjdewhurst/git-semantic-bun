@@ -4,6 +4,7 @@ import { loadAnnIndex } from "../core/ann-index.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { getLexicalCacheForIndex } from "../core/lexical-cache.ts";
+import { resolveModelIndexPaths, resolveTargetIndexPaths } from "../core/model-paths.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import type { AnnIndexHandle } from "../core/vector-search.ts";
 import { type SearchOptions, executeSearch } from "./search.ts";
@@ -23,10 +24,13 @@ async function tryLoadAnn(annPath: string, dimension: number): Promise<AnnIndexH
 
 export async function runServe(options: ServeOptions): Promise<void> {
   const paths = resolveRepoPaths();
-  let index = loadIndex(paths.indexPath);
+  const targetPaths = options.model
+    ? resolveModelIndexPaths(paths, options.model)
+    : resolveTargetIndexPaths(paths);
+  let index = loadIndex(targetPaths.indexPath);
   let embedder = await createEmbedder(index.modelName, paths.cacheDir);
   let lexicalCache = getLexicalCacheForIndex(index);
-  let annHandle = await tryLoadAnn(paths.annIndexPath, 384);
+  let annHandle = await tryLoadAnn(targetPaths.annIndexPath, 384);
 
   const strategyLabel = annHandle ? "ann available" : "exact only";
   console.error(
@@ -51,10 +55,10 @@ export async function runServe(options: ServeOptions): Promise<void> {
     }
 
     if (input === ":reload") {
-      index = loadIndex(paths.indexPath);
+      index = loadIndex(targetPaths.indexPath);
       embedder = await createEmbedder(index.modelName, paths.cacheDir);
       lexicalCache = getLexicalCacheForIndex(index);
-      annHandle = await tryLoadAnn(paths.annIndexPath, 384);
+      annHandle = await tryLoadAnn(targetPaths.annIndexPath, 384);
       const label = annHandle ? "ann available" : "exact only";
       console.error(
         `reloaded (model=${index.modelName}, commits=${index.commits.length}, ${label})`,
