@@ -47,9 +47,9 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 ## Milestone 3 — Robustness
 
 ### 3.1 Safer incremental updates
-- [ ] Detect divergent history (rebase/force-push).
-- [ ] Add automatic recovery strategy (windowed reindex or full reindex fallback).
-- [ ] Surface clear warnings when index lineage is invalid.
+- [x] Detect divergent history (rebase/force-push).
+- [x] Add automatic recovery strategy (windowed reindex or full reindex fallback).
+- [x] Surface clear warnings when index lineage is invalid.
 
 ### 3.2 Validation and failure handling
 - [ ] Harden index validation with clearer error messages.

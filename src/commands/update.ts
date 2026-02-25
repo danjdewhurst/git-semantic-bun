@@ -1,6 +1,6 @@
 import { DEFAULT_BATCH_SIZE } from "../core/constants.ts";
 import { createEmbedder } from "../core/embeddings.ts";
-import { readCommits } from "../core/git.ts";
+import { commitExists, isAncestorCommit, readCommits } from "../core/git.ts";
 import { dedupeCommits, embedCommits } from "../core/indexing.ts";
 import { loadIndex, saveIndex } from "../core/index-store.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
@@ -11,12 +11,29 @@ export interface UpdateOptions {
   batchSize: number;
 }
 
+const WINDOWED_RECOVERY_DAYS = 90;
+
 function newestIndexedCommitHash(indexCommits: { hash: string; date: string }[]): string | undefined {
   const sorted = [...indexCommits].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
   return sorted[0]?.hash;
+}
+
+function newestIndexedCommitDate(indexCommits: { date: string }[]): Date | undefined {
+  const sorted = [...indexCommits].sort((a, b) => {
+    return new Date(b.date).getTime() - new Date(a.date).getTime();
+  });
+
+  const date = sorted[0]?.date;
+  return date ? new Date(date) : undefined;
+}
+
+function recoveryWindowStart(referenceDate: Date): Date {
+  const windowStart = new Date(referenceDate);
+  windowStart.setUTCDate(windowStart.getUTCDate() - WINDOWED_RECOVERY_DAYS);
+  return windowStart;
 }
 
 export async function runUpdate(options: UpdateOptions): Promise<void> {
@@ -33,11 +50,33 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   const includePatch = options.full ?? index.includePatch;
   const batchSize = validateBatchSize(options.batchSize || DEFAULT_BATCH_SIZE);
 
-  const newCommits = readCommits({
+  const hashStillExists = commitExists(paths.repoRoot, latestHash);
+  const hashIsAncestor = hashStillExists ? isAncestorCommit(paths.repoRoot, latestHash) : false;
+  const divergenceDetected = !hashStillExists || !hashIsAncestor;
+
+  let recoveryWindow: Date | undefined;
+  let newCommits = readCommits({
     cwd: paths.repoRoot,
     includePatch,
-    sinceHash: latestHash
+    sinceHash: latestHash,
   });
+
+  if (divergenceDetected) {
+    console.warn("Warning: indexed history appears to have diverged (rebase/force-push detected).");
+
+    const newestDate = newestIndexedCommitDate(index.commits) ?? new Date(index.lastUpdatedAt);
+    recoveryWindow = recoveryWindowStart(newestDate);
+
+    console.warn(
+      `Warning: applying windowed recovery from ${recoveryWindow.toISOString()} (last resort is full rebuild via gsb index).`,
+    );
+
+    newCommits = readCommits({
+      cwd: paths.repoRoot,
+      includePatch,
+      sinceDate: recoveryWindow,
+    });
+  }
 
   if (newCommits.length === 0) {
     console.log("Index is already up to date.");
@@ -52,7 +91,12 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
     progressLabel: "Embedding new commits"
   });
 
-  const merged = dedupeCommits([...newlyIndexed, ...index.commits]).sort((a, b) => {
+  const preservedOlderCommits =
+    divergenceDetected && recoveryWindow
+      ? index.commits.filter((commit) => new Date(commit.date).getTime() < recoveryWindow.getTime())
+      : index.commits;
+
+  const merged = dedupeCommits([...newlyIndexed, ...preservedOlderCommits]).sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 

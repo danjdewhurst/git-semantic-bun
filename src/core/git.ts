@@ -104,3 +104,27 @@ export function readCommits(options: ReadCommitsOptions): GitCommit[] {
 export function parseGitLogOutput(raw: string): GitCommit[] {
   return parseLogOutput(raw);
 }
+
+export function commitExists(cwd: string, hash: string): boolean {
+  try {
+    execFileSync("git", ["cat-file", "-e", `${hash}^{commit}`], {
+      cwd,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function isAncestorCommit(cwd: string, ancestorHash: string, headRef: string = "HEAD"): boolean {
+  try {
+    execFileSync("git", ["merge-base", "--is-ancestor", ancestorHash, headRef], {
+      cwd,
+      stdio: "ignore",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
