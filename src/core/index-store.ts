@@ -359,32 +359,25 @@ function loadCompactIndex(indexPath: string): SemanticIndex {
 
   const expectedLength = meta.vector.dimension * meta.vector.count;
   const vectorDtype = fromCompactDtype(meta.vector.dtype);
+
+  const valuesF16 =
+    meta.vector.dtype === "float16"
+      ? new Uint16Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 2)
+      : undefined;
+  const valuesF32 =
+    meta.vector.dtype === "float32"
+      ? new Float32Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 4)
+      : undefined;
+
+  const actualLength = valuesF16?.length ?? valuesF32?.length ?? 0;
+  if (actualLength !== expectedLength) {
+    throw new Error("Compact vector file size does not match metadata");
+  }
+
   const commits = meta.commits.map((commit) => {
     const start = commit.vectorOffset * meta.vector.dimension;
     const end = start + meta.vector.dimension;
-
-    let embedding: number[];
-    if (meta.vector.dtype === "float16") {
-      const values = new Uint16Array(
-        vectorData.buffer,
-        vectorData.byteOffset,
-        vectorData.byteLength / 2,
-      );
-      if (values.length !== expectedLength) {
-        throw new Error("Compact vector file size does not match metadata");
-      }
-      embedding = Array.from(values.slice(start, end)).map((value) => float16ToFloat32(value));
-    } else {
-      const values = new Float32Array(
-        vectorData.buffer,
-        vectorData.byteOffset,
-        vectorData.byteLength / 4,
-      );
-      if (values.length !== expectedLength) {
-        throw new Error("Compact vector file size does not match metadata");
-      }
-      embedding = Array.from(values.slice(start, end));
-    }
+    let cachedEmbedding: number[] | undefined;
 
     return {
       hash: commit.hash,
@@ -392,7 +385,25 @@ function loadCompactIndex(indexPath: string): SemanticIndex {
       date: commit.date,
       message: commit.message,
       files: commit.files,
-      embedding,
+      get embedding(): number[] {
+        if (cachedEmbedding) {
+          return cachedEmbedding;
+        }
+
+        if (valuesF16) {
+          cachedEmbedding = Array.from(valuesF16.slice(start, end)).map((value) =>
+            float16ToFloat32(value),
+          );
+          return cachedEmbedding;
+        }
+
+        if (valuesF32) {
+          cachedEmbedding = Array.from(valuesF32.slice(start, end));
+          return cachedEmbedding;
+        }
+
+        return [];
+      },
     };
   });
 

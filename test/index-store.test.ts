@@ -87,6 +87,40 @@ describe("index-store", () => {
     }
   });
 
+  it("loads compact vectors lazily and caches decoded embeddings", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "gsb-index-lazy-test-"));
+    try {
+      const indexPath = path.join(dir, "index.json");
+      saveIndex(indexPath, {
+        version: 1,
+        modelName: "Xenova/all-MiniLM-L6-v2",
+        createdAt: "2025-01-01T00:00:00.000Z",
+        lastUpdatedAt: "2025-01-02T00:00:00.000Z",
+        repositoryRoot: "/repo",
+        includePatch: false,
+        commits: [
+          {
+            hash: "lazy",
+            author: "Alice",
+            date: "2025-01-04T00:00:00.000Z",
+            message: "feat: lazy",
+            files: ["src/lazy.ts"],
+            embedding: [0.25, 0.5, 0.75],
+          },
+        ],
+      });
+
+      const loaded = loadIndex(indexPath);
+      const first = loaded.commits[0]?.embedding;
+      const second = loaded.commits[0]?.embedding;
+
+      expect(first).toEqual([0.25, 0.5, 0.75]);
+      expect(second).toBe(first);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("supports f16 compact vector storage", () => {
     const dir = mkdtempSync(path.join(tmpdir(), "gsb-index-f16-test-"));
     try {
