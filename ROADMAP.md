@@ -52,8 +52,8 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 - [x] Surface clear warnings when index lineage is invalid.
 
 ### 3.2 Validation and failure handling
-- [ ] Harden index validation with clearer error messages.
-- [ ] Add checksum/version metadata for future migrations.
+- [x] Harden index validation with clearer error messages.
+- [x] Add checksum/version metadata for future migrations.
 
 **Success criteria:** no silent stale-index behaviour in rewritten-history workflows.
 

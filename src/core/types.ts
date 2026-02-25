@@ -23,6 +23,7 @@ export interface SemanticIndex {
   lastUpdatedAt: string;
   repositoryRoot: string;
   includePatch: boolean;
+  checksum?: string;
   commits: IndexedCommit[];
 }
 
