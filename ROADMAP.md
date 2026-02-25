@@ -73,9 +73,9 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 ## Milestone 5 — Testing & CI hardening
 
 - [x] Add end-to-end tests creating temp git repos and running `init/index/search/update`.
-- [ ] Add ranking regression fixtures (golden queries).
-- [ ] Add performance smoke test thresholds.
-- [ ] Ensure CI runs tests + typecheck + lint for all PRs.
+- [x] Add ranking regression fixtures (golden queries).
+- [x] Add performance smoke test thresholds.
+- [x] Ensure CI runs tests + typecheck + lint for all PRs.
 
 ## Nice-to-have backlog
 
