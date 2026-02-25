@@ -155,6 +155,31 @@ gsb search "token refresh race" --format markdown
 gsb search "error handling in webhook retries" --format json
 ```
 
+## Why this is useful for AI agents
+
+`git-semantic-bun` is a strong retrieval layer for coding agents (Codex/Claude/etc.) working in real repos.
+
+Practical agent workflows:
+
+- **Fix discovery:** query prior bugfix patterns before proposing a new patch
+  - e.g. `gsb search "race condition in token refresh" --format json`
+- **Architecture recall:** retrieve historical commits that explain why a subsystem was changed
+- **Safer refactors:** find commits touching similar files/behaviours to avoid repeating old mistakes
+- **Context packing for LLM prompts:** emit `--format markdown` or `--format json` and feed top hits into the prompt context
+- **Automated triage:** pipe JSON output into scripts to rank likely relevant commits for each issue/PR
+
+Agent-friendly output modes:
+
+- `--format text` for humans in terminal
+- `--format markdown` for reports/PR notes
+- `--format json` for machine-readable pipelines and prompt assembly
+
+Example (LLM context prep):
+
+```bash
+gsb search "retry backoff bug in webhook delivery" --format json -n 8 > semantic-context.json
+```
+
 ## Before vs after
 
 Before:
