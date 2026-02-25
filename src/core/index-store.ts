@@ -279,6 +279,23 @@ function validateCompactMeta(parsed: unknown): CompactIndexMeta {
     };
   });
 
+  let ann: AnnIndexMeta | undefined;
+  const rawAnn = value.ann as Record<string, unknown> | undefined;
+  if (
+    rawAnn &&
+    typeof rawAnn.file === "string" &&
+    typeof rawAnn.metric === "string" &&
+    typeof rawAnn.connectivity === "number" &&
+    typeof rawAnn.commitCount === "number"
+  ) {
+    ann = {
+      file: rawAnn.file,
+      metric: rawAnn.metric,
+      connectivity: rawAnn.connectivity,
+      commitCount: rawAnn.commitCount,
+    };
+  }
+
   return {
     version: 2,
     modelName: value.modelName,
@@ -294,6 +311,7 @@ function validateCompactMeta(parsed: unknown): CompactIndexMeta {
       count: vector.count,
       normalised: vector.normalised,
     },
+    ...(ann ? { ann } : {}),
     commits,
   };
 }
