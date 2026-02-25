@@ -176,6 +176,8 @@ Shows index count, model, size, and timestamps.
 
 Validates index files, compact sidecars, model metadata, and cache directory readiness.
 
+- `--fix` performs safe non-destructive repairs (create missing dirs, rebuild sidecars, recreate metadata when possible).
+
 ### `gsb benchmark [query] [filters]`
 
 Benchmarks ranking performance (baseline full-sort vs optimised heap top-k) using the current index.

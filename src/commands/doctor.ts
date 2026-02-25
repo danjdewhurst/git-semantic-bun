@@ -1,8 +1,25 @@
+import { runDoctorChecks, runDoctorFixes } from "../core/doctor.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
-import { runDoctorChecks } from "../core/doctor.ts";
 
-export async function runDoctor(): Promise<void> {
+export interface DoctorOptions {
+  fix?: boolean;
+}
+
+export async function runDoctor(options: DoctorOptions = {}): Promise<void> {
   const paths = resolveRepoPaths();
+
+  if (options.fix) {
+    const fixed = runDoctorFixes(paths);
+    console.log("Applied fixes:");
+    for (const action of fixed.actions) {
+      console.log(`- ${action}`);
+    }
+    for (const warning of fixed.warnings) {
+      console.log(`- warning: ${warning}`);
+    }
+    console.log("");
+  }
+
   const checks = runDoctorChecks(paths);
 
   let failures = 0;

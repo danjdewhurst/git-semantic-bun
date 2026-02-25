@@ -153,8 +153,9 @@ program
 program
   .command("doctor")
   .description("Check semantic index health, metadata, and cache readiness")
-  .action(async () => {
-    await runDoctor();
+  .option("--fix", "Attempt safe non-destructive repairs", false)
+  .action(async (options: { fix: boolean }) => {
+    await runDoctor(options);
   });
 
 program
