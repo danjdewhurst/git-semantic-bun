@@ -28,12 +28,51 @@ Traditional git search is lexical:
 
 ## Install
 
-### Prerequisites
+### Option A: Download prebuilt binaries (recommended)
+
+Grab the binary for your platform from the GitHub Releases page:
+
+- <https://github.com/danjdewhurst/git-semantic-bun/releases>
+
+Current assets:
+
+- `gsb-linux-x64`
+- `gsb-linux-arm64`
+- `gsb-macos-x64`
+- `gsb-macos-arm64`
+- `gsb-windows-x64.exe`
+
+#### Linux/macOS quick install
+
+```bash
+# Example: Linux x64
+curl -L -o gsb https://github.com/danjdewhurst/git-semantic-bun/releases/latest/download/gsb-linux-x64
+chmod +x gsb
+sudo mv gsb /usr/local/bin/gsb
+
+# verify
+gsb --help
+```
+
+#### Windows
+
+- Download `gsb-windows-x64.exe` from Releases
+- Rename to `gsb.exe` (optional)
+- Add its folder to your PATH
+- Run:
+
+```powershell
+gsb.exe --help
+```
+
+### Option B: Local development with Bun
+
+#### Prerequisites
 
 - Bun 1.3+
 - Git repository to index
 
-### Local development
+Install deps:
 
 ```bash
 bun install
@@ -45,7 +84,7 @@ Run directly:
 bun run src/cli.ts --help
 ```
 
-### Optional global command
+Optional global command:
 
 ```bash
 bun link
