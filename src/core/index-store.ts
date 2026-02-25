@@ -53,7 +53,6 @@ function computeChecksum(index: SemanticIndex): string {
     hash.update(commit.date);
     hash.update(commit.message);
     hash.update(commit.files.join("\n"));
-    hash.update(commit.embedding.join(","));
   }
 
   return hash.digest("hex");

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { env, pipeline } from "@xenova/transformers";
 
@@ -50,7 +51,38 @@ function toVectors(output: unknown, expectedRows: number): number[][] {
   return vectors;
 }
 
+function fakeVector(text: string, dimensions: number = 32): number[] {
+  const digest = createHash("sha256").update(text).digest();
+  const values: number[] = [];
+
+  for (let i = 0; i < dimensions; i += 1) {
+    const byte = digest[i % digest.length] ?? 0;
+    values.push((byte / 255) * 2 - 1);
+  }
+
+  let norm = 0;
+  for (const value of values) {
+    norm += value * value;
+  }
+
+  if (norm === 0) {
+    return values;
+  }
+
+  const scale = 1 / Math.sqrt(norm);
+  return values.map((value) => value * scale);
+}
+
 export async function createEmbedder(modelName: string, cacheDir: string): Promise<Embedder> {
+  if (process.env.GSB_FAKE_EMBEDDINGS === "1") {
+    return {
+      modelName: `${modelName}-fake`,
+      async embedBatch(texts: string[]): Promise<number[][]> {
+        return texts.map((text) => fakeVector(text));
+      },
+    };
+  }
+
   env.cacheDir = path.resolve(cacheDir);
   env.allowLocalModels = true;
 
@@ -65,10 +97,10 @@ export async function createEmbedder(modelName: string, cacheDir: string): Promi
 
       const output = await extractor(texts, {
         pooling: "mean",
-        normalize: true
+        normalize: true,
       });
 
       return toVectors(output, texts.length);
-    }
+    },
   };
 }
