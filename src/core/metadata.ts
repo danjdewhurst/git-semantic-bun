@@ -4,7 +4,7 @@ import type { InitMetadata } from "./types.ts";
 export function saveMetadata(metadataPath: string, modelName: string): InitMetadata {
   const metadata: InitMetadata = {
     modelName,
-    initializedAt: new Date().toISOString()
+    initializedAt: new Date().toISOString(),
   };
 
   writeFileSync(metadataPath, `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
@@ -24,6 +24,6 @@ export function loadMetadata(metadataPath: string): InitMetadata {
 
   return {
     modelName: value.modelName,
-    initializedAt: value.initializedAt
+    initializedAt: value.initializedAt,
   };
 }

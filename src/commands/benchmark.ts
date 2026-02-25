@@ -1,9 +1,9 @@
-import { benchmarkRanking } from "../core/benchmark.ts";
 import {
   loadBenchmarkHistory,
   renderBenchmarkHistorySummary,
   saveBenchmarkHistory,
 } from "../core/benchmark-history.ts";
+import { benchmarkRanking } from "../core/benchmark.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
@@ -99,7 +99,9 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
 
   const result = benchmarkRanking(scored, options.limit, options.iterations);
   console.log(`Benchmark query: "${query}"`);
-  console.log(`Candidates: ${scored.length} · limit=${options.limit} · iterations=${options.iterations}`);
+  console.log(
+    `Candidates: ${scored.length} · limit=${options.limit} · iterations=${options.iterations}`,
+  );
   console.log(`Baseline (full sort): ${result.baselineMs.toFixed(3)} ms`);
   console.log(`Optimised (heap top-k): ${result.optimisedMs.toFixed(3)} ms`);
   console.log(`Speedup: ${result.speedup.toFixed(2)}x`);

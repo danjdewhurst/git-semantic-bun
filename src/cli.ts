@@ -71,7 +71,12 @@ program
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
   .option("--exclude <glob>", "Exclude matching file paths (repeatable)", collectPattern, [])
-  .option("--vector-dtype <dtype>", "Compact vector dtype: f32 or f16", parseVectorDtypeOption, "f32")
+  .option(
+    "--vector-dtype <dtype>",
+    "Compact vector dtype: f32 or f16",
+    parseVectorDtypeOption,
+    "f32",
+  )
   .action(
     async (options: {
       full: boolean;
@@ -96,9 +101,9 @@ program
         vectorDtype: options.vectorDtype,
       };
 
-    if (options.model !== undefined) {
-      indexOptions.model = options.model;
-    }
+      if (options.model !== undefined) {
+        indexOptions.model = options.model;
+      }
 
       await runIndex(indexOptions);
     },
@@ -113,11 +118,31 @@ program
   .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
   .option("--file <path>", "Filter commits touching file path substring")
   .option("-n, --limit <count>", "Max results", limitParser, DEFAULT_LIMIT)
-  .option("--format <format>", "Output format: text, markdown, json", parseSearchOutputFormat, "text")
+  .option(
+    "--format <format>",
+    "Output format: text, markdown, json",
+    parseSearchOutputFormat,
+    "text",
+  )
   .option("--explain", "Show score component breakdown", false)
-  .option("--semantic-weight <weight>", "Semantic score weight (0..1)", toWeightParser("--semantic-weight"), 0.75)
-  .option("--lexical-weight <weight>", "Lexical score weight (0..1)", toWeightParser("--lexical-weight"), 0.2)
-  .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
+  .option(
+    "--semantic-weight <weight>",
+    "Semantic score weight (0..1)",
+    toWeightParser("--semantic-weight"),
+    0.75,
+  )
+  .option(
+    "--lexical-weight <weight>",
+    "Lexical score weight (0..1)",
+    toWeightParser("--lexical-weight"),
+    0.2,
+  )
+  .option(
+    "--recency-weight <weight>",
+    "Recency score weight (0..1)",
+    toWeightParser("--recency-weight"),
+    0.05,
+  )
   .option("--no-recency-boost", "Disable recency scoring boost")
   .option("--snippets", "Include compact diff snippets in search output", false)
   .option("--snippet-lines <count>", "Diff snippet body lines to include", limitParser, 12)
@@ -140,10 +165,10 @@ program
         snippets: boolean;
         snippetLines: number;
         minScore?: number;
-      }
+      },
     ) => {
       await runSearch(query, options);
-    }
+    },
   );
 
 program
@@ -153,7 +178,11 @@ program
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
   .option("--exclude <glob>", "Exclude matching file paths (repeatable)", collectPattern, [])
-  .option("--vector-dtype <dtype>", "Compact vector dtype override: f32 or f16", parseVectorDtypeOption)
+  .option(
+    "--vector-dtype <dtype>",
+    "Compact vector dtype override: f32 or f16",
+    parseVectorDtypeOption,
+  )
   .action(
     async (options: {
       full?: boolean;
@@ -210,9 +239,24 @@ program
   .option("--file <path>", "Filter commits touching file path substring")
   .option("-n, --limit <count>", "Max results", limitParser, DEFAULT_LIMIT)
   .option("-i, --iterations <count>", "Benchmark iterations", limitParser, 20)
-  .option("--semantic-weight <weight>", "Semantic score weight (0..1)", toWeightParser("--semantic-weight"), 0.75)
-  .option("--lexical-weight <weight>", "Lexical score weight (0..1)", toWeightParser("--lexical-weight"), 0.2)
-  .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
+  .option(
+    "--semantic-weight <weight>",
+    "Semantic score weight (0..1)",
+    toWeightParser("--semantic-weight"),
+    0.75,
+  )
+  .option(
+    "--lexical-weight <weight>",
+    "Lexical score weight (0..1)",
+    toWeightParser("--lexical-weight"),
+    0.2,
+  )
+  .option(
+    "--recency-weight <weight>",
+    "Recency score weight (0..1)",
+    toWeightParser("--recency-weight"),
+    0.05,
+  )
   .option("--no-recency-boost", "Disable recency scoring boost")
   .option("--save", "Save benchmark result to history log", false)
   .option("--history", "Show saved benchmark history", false)

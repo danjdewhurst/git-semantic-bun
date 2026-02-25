@@ -28,7 +28,7 @@ export function buildEmbeddingText(commit: GitCommit, includePatch: boolean): st
     commit.message,
     "",
     "files (medium-signal):",
-    commit.files.join("\n")
+    commit.files.join("\n"),
   ];
 
   if (includePatch && commit.patch) {
@@ -44,7 +44,7 @@ export function buildEmbeddingText(commit: GitCommit, includePatch: boolean): st
 export async function embedCommits(
   commits: readonly GitCommit[],
   embedder: Embedder,
-  options: IndexingOptions
+  options: IndexingOptions,
 ): Promise<IndexedCommit[]> {
   const results: IndexedCommit[] = [];
 
@@ -66,7 +66,7 @@ export async function embedCommits(
         date: commit.date,
         message: commit.message,
         files: commit.files,
-        embedding: normaliseVector(vector)
+        embedding: normaliseVector(vector),
       });
     }
 

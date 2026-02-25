@@ -199,7 +199,7 @@ function validateIndex(parsed: unknown): SemanticIndex {
     lastUpdatedAt: value.lastUpdatedAt,
     repositoryRoot: value.repositoryRoot,
     includePatch: value.includePatch,
-    ...((value.vectorDtype === "f16" || value.vectorDtype === "f32")
+    ...(value.vectorDtype === "f16" || value.vectorDtype === "f32"
       ? { vectorDtype: value.vectorDtype }
       : {}),
     ...(typeof value.checksum === "string" ? { checksum: value.checksum } : {}),
@@ -365,13 +365,21 @@ function loadCompactIndex(indexPath: string): SemanticIndex {
 
     let embedding: number[];
     if (meta.vector.dtype === "float16") {
-      const values = new Uint16Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 2);
+      const values = new Uint16Array(
+        vectorData.buffer,
+        vectorData.byteOffset,
+        vectorData.byteLength / 2,
+      );
       if (values.length !== expectedLength) {
         throw new Error("Compact vector file size does not match metadata");
       }
       embedding = Array.from(values.slice(start, end)).map((value) => float16ToFloat32(value));
     } else {
-      const values = new Float32Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 4);
+      const values = new Float32Array(
+        vectorData.buffer,
+        vectorData.byteOffset,
+        vectorData.byteLength / 4,
+      );
       if (values.length !== expectedLength) {
         throw new Error("Compact vector file size does not match metadata");
       }

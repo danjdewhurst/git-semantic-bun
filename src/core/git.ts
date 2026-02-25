@@ -12,7 +12,7 @@ function runGit(args: string[], cwd: string): string {
   return execFileSync("git", args, {
     cwd,
     encoding: "utf8",
-    maxBuffer: 1024 * 1024 * 512
+    maxBuffer: 1024 * 1024 * 512,
   });
 }
 
@@ -31,7 +31,7 @@ function parseLogOutput(raw: string): GitCommit[] {
       continue;
     }
 
-    const cleaned = trimmed.replace(/\x1e/g, "");
+    const cleaned = trimmed.replaceAll("\x1e", "");
     const maybeHeader = cleaned.split("\x1f");
     if (maybeHeader.length >= 4) {
       if (current) {
@@ -50,7 +50,7 @@ function parseLogOutput(raw: string): GitCommit[] {
         author,
         date,
         message,
-        files: []
+        files: [],
       };
       continue;
     }
@@ -71,7 +71,7 @@ function getPatchForCommit(cwd: string, hash: string): string {
   return runGit(["show", "--format=", "--patch", "--no-color", hash], cwd);
 }
 
-export function getCommitDiffSnippet(cwd: string, hash: string, maxLines: number = 12): string {
+export function getCommitDiffSnippet(cwd: string, hash: string, maxLines = 12): string {
   const patch = runGit(["show", "--format=", "--patch", "--no-color", hash], cwd);
   const lines = patch.split("\n");
 
@@ -80,7 +80,8 @@ export function getCommitDiffSnippet(cwd: string, hash: string, maxLines: number
   let bodyLines = 0;
 
   for (const line of lines) {
-    const isFileHeader = line.startsWith("diff --git") || line.startsWith("--- ") || line.startsWith("+++ ");
+    const isFileHeader =
+      line.startsWith("diff --git") || line.startsWith("--- ") || line.startsWith("+++ ");
     const isHunkHeader = line.startsWith("@@");
 
     if (isFileHeader || isHunkHeader) {
@@ -110,7 +111,7 @@ export function readCommits(options: ReadCommitsOptions): GitCommit[] {
     "--date=iso-strict",
     "--pretty=format:%H%x1f%an%x1f%ad%x1f%s%x1e",
     "--name-only",
-    "--no-renames"
+    "--no-renames",
   ];
 
   if (options.sinceDate) {
@@ -130,7 +131,7 @@ export function readCommits(options: ReadCommitsOptions): GitCommit[] {
 
   return commits.map((commit) => ({
     ...commit,
-    patch: getPatchForCommit(options.cwd, commit.hash)
+    patch: getPatchForCommit(options.cwd, commit.hash),
   }));
 }
 
@@ -150,7 +151,7 @@ export function commitExists(cwd: string, hash: string): boolean {
   }
 }
 
-export function isAncestorCommit(cwd: string, ancestorHash: string, headRef: string = "HEAD"): boolean {
+export function isAncestorCommit(cwd: string, ancestorHash: string, headRef = "HEAD"): boolean {
   try {
     execFileSync("git", ["merge-base", "--is-ancestor", ancestorHash, headRef], {
       cwd,

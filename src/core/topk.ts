@@ -26,11 +26,17 @@ function siftDown<T>(heap: HeapItem<T>[], index: number): void {
     const right = current * 2 + 2;
     let smallest = current;
 
-    if ((heap[left]?.score ?? Number.POSITIVE_INFINITY) < (heap[smallest]?.score ?? Number.POSITIVE_INFINITY)) {
+    if (
+      (heap[left]?.score ?? Number.POSITIVE_INFINITY) <
+      (heap[smallest]?.score ?? Number.POSITIVE_INFINITY)
+    ) {
       smallest = left;
     }
 
-    if ((heap[right]?.score ?? Number.POSITIVE_INFINITY) < (heap[smallest]?.score ?? Number.POSITIVE_INFINITY)) {
+    if (
+      (heap[right]?.score ?? Number.POSITIVE_INFINITY) <
+      (heap[smallest]?.score ?? Number.POSITIVE_INFINITY)
+    ) {
       smallest = right;
     }
 

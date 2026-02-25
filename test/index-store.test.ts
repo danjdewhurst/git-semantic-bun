@@ -2,7 +2,13 @@ import { describe, expect, it } from "bun:test";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { getIndexSizeBytes, getVectorDtype, getVectorSizeBytes, loadIndex, saveIndex } from "../src/core/index-store.ts";
+import {
+  getIndexSizeBytes,
+  getVectorDtype,
+  getVectorSizeBytes,
+  loadIndex,
+  saveIndex,
+} from "../src/core/index-store.ts";
 import type { SemanticIndex } from "../src/core/types.ts";
 
 describe("index-store", () => {

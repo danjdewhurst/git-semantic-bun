@@ -13,6 +13,8 @@ describe("benchmarkRanking", () => {
   });
 
   it("rejects non-positive iteration count", () => {
-    expect(() => benchmarkRanking([{ score: 1 }], 5, 0)).toThrow("Iterations must be greater than zero");
+    expect(() => benchmarkRanking([{ score: 1 }], 5, 0)).toThrow(
+      "Iterations must be greater than zero",
+    );
   });
 });

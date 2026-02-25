@@ -1,6 +1,6 @@
-import path from "node:path";
-import { mkdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { mkdirSync } from "node:fs";
+import path from "node:path";
 
 export interface RepoPaths {
   repoRoot: string;
@@ -17,12 +17,12 @@ export interface RepoPaths {
 export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
   const repoRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], {
     cwd,
-    encoding: "utf8"
+    encoding: "utf8",
   }).trim();
 
   const gitDirRaw = execFileSync("git", ["rev-parse", "--git-dir"], {
     cwd: repoRoot,
-    encoding: "utf8"
+    encoding: "utf8",
   }).trim();
 
   const gitDir = path.isAbsolute(gitDirRaw) ? gitDirRaw : path.join(repoRoot, gitDirRaw);
@@ -38,7 +38,7 @@ export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
     compactMetaPath: path.join(semanticDir, "index.meta.json"),
     compactVectorPath: path.join(semanticDir, "index.vec.f32"),
     metadataPath: path.join(cacheDir, "metadata.json"),
-    benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl")
+    benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl"),
   };
 }
 

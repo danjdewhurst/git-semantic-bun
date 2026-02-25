@@ -1,11 +1,11 @@
 import { DEFAULT_BATCH_SIZE } from "../core/constants.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { commitExists, isAncestorCommit, readCommits } from "../core/git.ts";
-import { dedupeCommits, embedCommits } from "../core/indexing.ts";
 import { loadIndex, saveIndex } from "../core/index-store.ts";
+import { dedupeCommits, embedCommits } from "../core/indexing.ts";
+import { validateBatchSize } from "../core/parsing.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
 import { filterCommitsByPatterns, loadGsbIgnorePatterns } from "../core/patterns.ts";
-import { validateBatchSize } from "../core/parsing.ts";
 
 export interface UpdateOptions {
   full?: boolean;
@@ -17,7 +17,9 @@ export interface UpdateOptions {
 
 const WINDOWED_RECOVERY_DAYS = 90;
 
-function newestIndexedCommitHash(indexCommits: { hash: string; date: string }[]): string | undefined {
+function newestIndexedCommitHash(
+  indexCommits: { hash: string; date: string }[],
+): string | undefined {
   const sorted = [...indexCommits].sort((a, b) => {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
@@ -83,7 +85,10 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   }
 
   const ignores = loadGsbIgnorePatterns(paths.repoRoot);
-  const filteredNewCommits = filterCommitsByPatterns(newCommits, options.include, [...options.exclude, ...ignores]);
+  const filteredNewCommits = filterCommitsByPatterns(newCommits, options.include, [
+    ...options.exclude,
+    ...ignores,
+  ]);
 
   if (filteredNewCommits.length === 0) {
     console.log("Index is already up to date.");
@@ -95,7 +100,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   const newlyIndexed = await embedCommits(filteredNewCommits, embedder, {
     batchSize,
     includePatch,
-    progressLabel: "Embedding new commits"
+    progressLabel: "Embedding new commits",
   });
 
   const preservedOlderCommits =
@@ -112,7 +117,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
     includePatch,
     vectorDtype: options.vectorDtype ?? index.vectorDtype ?? "f32",
     lastUpdatedAt: new Date().toISOString(),
-    commits: merged
+    commits: merged,
   });
 
   console.log(`Updated index with ${newlyIndexed.length} commits at ${paths.indexPath}`);

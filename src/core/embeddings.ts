@@ -20,7 +20,10 @@ function isTensorLike(value: unknown): value is TensorLike {
   }
 
   const candidate = value as Record<string, unknown>;
-  return Array.isArray(candidate.dims) && (candidate.data instanceof Float32Array || Array.isArray(candidate.data));
+  return (
+    Array.isArray(candidate.dims) &&
+    (candidate.data instanceof Float32Array || Array.isArray(candidate.data))
+  );
 }
 
 function toVectors(output: unknown, expectedRows: number): number[][] {
@@ -39,7 +42,9 @@ function toVectors(output: unknown, expectedRows: number): number[][] {
   const cols = dims[1] ?? 0;
 
   if (rows !== expectedRows || rows <= 0 || cols <= 0) {
-    throw new Error(`Unexpected embedding tensor shape [${rows}, ${cols}] for ${expectedRows} rows.`);
+    throw new Error(
+      `Unexpected embedding tensor shape [${rows}, ${cols}] for ${expectedRows} rows.`,
+    );
   }
 
   const vectors: number[][] = [];
@@ -51,7 +56,7 @@ function toVectors(output: unknown, expectedRows: number): number[][] {
   return vectors;
 }
 
-function fakeVector(text: string, dimensions: number = 32): number[] {
+function fakeVector(text: string, dimensions = 32): number[] {
   const digest = createHash("sha256").update(text).digest();
   const values: number[] = [];
 

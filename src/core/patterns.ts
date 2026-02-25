@@ -65,19 +65,17 @@ export function filterCommitsByPatterns(
 
   const filtered: GitCommit[] = [];
   for (const commit of commits) {
-    const keptFiles = commit.files
-      .map(normaliseFilePath)
-      .filter((file) => {
-        if (includeActive && !includeMatchers.some((regex) => regex.test(file))) {
-          return false;
-        }
+    const keptFiles = commit.files.map(normaliseFilePath).filter((file) => {
+      if (includeActive && !includeMatchers.some((regex) => regex.test(file))) {
+        return false;
+      }
 
-        if (excludeMatchers.some((regex) => regex.test(file))) {
-          return false;
-        }
+      if (excludeMatchers.some((regex) => regex.test(file))) {
+        return false;
+      }
 
-        return true;
-      });
+      return true;
+    });
 
     if (commit.files.length > 0 && keptFiles.length === 0) {
       continue;

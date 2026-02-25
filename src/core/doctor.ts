@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { getVectorSizeBytes, loadIndex, saveIndex } from "./index-store.ts";
 import { saveMetadata } from "./metadata.ts";
-import { ensureSemanticDirectories, type RepoPaths } from "./paths.ts";
+import { type RepoPaths, ensureSemanticDirectories } from "./paths.ts";
 import type { SemanticIndex } from "./types.ts";
 
 export interface DoctorCheck {
@@ -95,14 +95,17 @@ export function runDoctorChecks(paths: RepoPaths): DoctorCheck[] {
   checks.push({
     name: "compact metadata",
     ok: compactMetaExists,
-    detail: compactMetaExists ? `found at ${paths.compactMetaPath}` : `missing at ${paths.compactMetaPath}`,
+    detail: compactMetaExists
+      ? `found at ${paths.compactMetaPath}`
+      : `missing at ${paths.compactMetaPath}`,
   });
 
   let vectorBytes = 0;
   let vectorDetail = "missing compact vectors";
   try {
     vectorBytes = getVectorSizeBytes(paths.indexPath);
-    vectorDetail = vectorBytes > 0 ? `found compact vectors (${vectorBytes} bytes)` : "missing compact vectors";
+    vectorDetail =
+      vectorBytes > 0 ? `found compact vectors (${vectorBytes} bytes)` : "missing compact vectors";
   } catch (error) {
     vectorDetail = `compact vectors unreadable: ${(error as Error).message}`;
   }

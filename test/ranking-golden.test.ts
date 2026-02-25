@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { combineScores, normaliseWeights, type ScoreWeights } from "../src/core/ranking.ts";
+import { type ScoreWeights, combineScores, normaliseWeights } from "../src/core/ranking.ts";
 
 interface GoldenCase {
   id: string;

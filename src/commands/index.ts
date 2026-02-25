@@ -1,12 +1,12 @@
 import { DEFAULT_BATCH_SIZE, DEFAULT_MODEL } from "../core/constants.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { readCommits } from "../core/git.ts";
-import { embedCommits } from "../core/indexing.ts";
 import { saveIndex } from "../core/index-store.ts";
+import { embedCommits } from "../core/indexing.ts";
 import { loadMetadata } from "../core/metadata.ts";
+import { validateBatchSize } from "../core/parsing.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
 import { filterCommitsByPatterns, loadGsbIgnorePatterns } from "../core/patterns.ts";
-import { validateBatchSize } from "../core/parsing.ts";
 
 export interface IndexOptions {
   full: boolean;
@@ -35,14 +35,19 @@ export async function runIndex(options: IndexOptions): Promise<void> {
 
   const commits = readCommits({
     cwd: paths.repoRoot,
-    includePatch: options.full
+    includePatch: options.full,
   });
 
   const ignores = loadGsbIgnorePatterns(paths.repoRoot);
-  const filteredCommits = filterCommitsByPatterns(commits, options.include, [...options.exclude, ...ignores]);
+  const filteredCommits = filterCommitsByPatterns(commits, options.include, [
+    ...options.exclude,
+    ...ignores,
+  ]);
 
   if (filteredCommits.length === 0) {
-    throw new Error("No commits found in repository history after applying include/exclude patterns.");
+    throw new Error(
+      "No commits found in repository history after applying include/exclude patterns.",
+    );
   }
 
   console.log(`Indexing ${filteredCommits.length} commits with model ${modelName}`);
@@ -50,7 +55,7 @@ export async function runIndex(options: IndexOptions): Promise<void> {
   const indexedCommits = await embedCommits(filteredCommits, embedder, {
     batchSize,
     includePatch: options.full,
-    progressLabel: "Embedding commits"
+    progressLabel: "Embedding commits",
   });
 
   const now = new Date().toISOString();
@@ -62,7 +67,7 @@ export async function runIndex(options: IndexOptions): Promise<void> {
     repositoryRoot: paths.repoRoot,
     includePatch: options.full,
     vectorDtype: options.vectorDtype ?? "f32",
-    commits: indexedCommits
+    commits: indexedCommits,
   });
 
   console.log(`Saved index to ${paths.indexPath}`);

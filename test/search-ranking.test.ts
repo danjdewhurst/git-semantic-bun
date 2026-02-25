@@ -3,7 +3,9 @@ import { bm25Scores, lexicalScore, normaliseWeights, recencyScore } from "../src
 
 describe("search scoring", () => {
   it("gives higher lexical scores for stronger token overlap", () => {
-    const high = lexicalScore("token refresh race", "fix token refresh race condition", ["src/auth.ts"]);
+    const high = lexicalScore("token refresh race", "fix token refresh race condition", [
+      "src/auth.ts",
+    ]);
     const low = lexicalScore("token refresh race", "update docs", ["README.md"]);
 
     expect(high).toBeGreaterThan(low);
@@ -15,7 +17,7 @@ describe("search scoring", () => {
       { id: "b", message: "update docs", files: ["README.md"] },
     ]);
 
-    expect((scores.get("a") ?? 0)).toBeGreaterThan(scores.get("b") ?? 0);
+    expect(scores.get("a") ?? 0).toBeGreaterThan(scores.get("b") ?? 0);
   });
 
   it("normalises score weights to total 1", () => {

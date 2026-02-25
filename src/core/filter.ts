@@ -1,6 +1,9 @@
 import type { IndexedCommit, SearchFilters } from "./types.ts";
 
-export function applyFilters(commits: readonly IndexedCommit[], filters: SearchFilters): IndexedCommit[] {
+export function applyFilters(
+  commits: readonly IndexedCommit[],
+  filters: SearchFilters,
+): IndexedCommit[] {
   return commits.filter((commit) => {
     if (filters.author) {
       const authorNeedle = filters.author.toLowerCase();

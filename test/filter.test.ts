@@ -9,7 +9,7 @@ const commits: IndexedCommit[] = [
     date: "2025-01-01T12:00:00.000Z",
     message: "Add search command",
     files: ["src/commands/search.ts"],
-    embedding: [0.1, 0.2]
+    embedding: [0.1, 0.2],
   },
   {
     hash: "b2",
@@ -17,8 +17,8 @@ const commits: IndexedCommit[] = [
     date: "2025-02-10T12:00:00.000Z",
     message: "Fix index writer",
     files: ["src/core/index-store.ts"],
-    embedding: [0.2, 0.3]
-  }
+    embedding: [0.2, 0.3],
+  },
 ];
 
 describe("applyFilters", () => {
@@ -31,7 +31,7 @@ describe("applyFilters", () => {
   it("filters by date range", () => {
     const result = applyFilters(commits, {
       after: new Date("2025-01-15T00:00:00.000Z"),
-      before: new Date("2025-03-01T00:00:00.000Z")
+      before: new Date("2025-03-01T00:00:00.000Z"),
     });
 
     expect(result).toHaveLength(1);

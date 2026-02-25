@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { buildEmbeddingText, dedupeCommits, embedCommits } from "../src/core/indexing.ts";
 import type { Embedder } from "../src/core/embeddings.ts";
+import { buildEmbeddingText, dedupeCommits, embedCommits } from "../src/core/indexing.ts";
 import type { GitCommit } from "../src/core/types.ts";
 
 function makeCommit(overrides: Partial<GitCommit> = {}): GitCommit {
@@ -82,7 +82,7 @@ describe("embedCommits", () => {
     expect(embedded[0]?.hash).toBe("a1");
     expect(embedded[1]?.hash).toBe("b2");
     expect(embedded[2]?.embedding[0]).toBeCloseTo(0.4472135955, 6);
-    expect(embedded[2]?.embedding[1]).toBeCloseTo(0.8944271910, 6);
+    expect(embedded[2]?.embedding[1]).toBeCloseTo(0.894427191, 6);
   });
 
   it("throws when embedder returns mismatched vector count", async () => {

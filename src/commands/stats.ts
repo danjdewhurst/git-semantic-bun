@@ -1,6 +1,11 @@
 import { performance } from "node:perf_hooks";
 import { formatBytes } from "../core/format.ts";
-import { getIndexSizeBytes, getVectorDtype, getVectorSizeBytes, loadIndex } from "../core/index-store.ts";
+import {
+  getIndexSizeBytes,
+  getVectorDtype,
+  getVectorSizeBytes,
+  loadIndex,
+} from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 
 export async function runStats(): Promise<void> {

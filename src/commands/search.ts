@@ -3,9 +3,15 @@ import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { getCommitDiffSnippet } from "../core/git.ts";
 import { loadIndex } from "../core/index-store.ts";
-import { resolveRepoPaths } from "../core/paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
-import { bm25Scores, combineScores, normaliseWeights, recencyScore, type ScoreWeights } from "../core/ranking.ts";
+import { resolveRepoPaths } from "../core/paths.ts";
+import {
+  type ScoreWeights,
+  bm25Scores,
+  combineScores,
+  normaliseWeights,
+  recencyScore,
+} from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
 import { selectTopKByScore } from "../core/topk.ts";
 import type { SearchFilters } from "../core/types.ts";
@@ -143,7 +149,7 @@ function renderTextOutput(payload: SearchOutputPayload): void {
 }
 
 function renderMarkdownOutput(payload: SearchOutputPayload): void {
-  console.log(`# Semantic search results`);
+  console.log("# Semantic search results");
   console.log("");
   console.log(`- **Query:** \`${payload.query}\``);
   console.log(`- **Model:** \`${payload.model}\``);
