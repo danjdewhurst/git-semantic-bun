@@ -26,23 +26,28 @@ Current status and next priorities for `git-semantic-bun`.
 
 ## Active roadmap (v0.4)
 
-### 1) Multi-model workflows
+### 1) Performance programme (primary)
+
+- [ ] Add daemon mode (`gsb serve`) for warm query reuse
+- [ ] Cache BM25 lexical stats per index checksum
+- [ ] Optimise scoring hot path to reduce allocation/GC pressure
+- [ ] Prototype memory-mapped/lazy vector loading
+- [ ] Evaluate optional ANN backend for very large repositories
+- [ ] Add perf CI baseline + regression guardrails
+
+Details and targets: [`docs/v0.4-performance-plan.md`](./docs/v0.4-performance-plan.md)
+
+### 2) Multi-model workflows
 
 - [ ] Support multiple model indexes in parallel
 - [ ] Allow model selection at query time (`search --model`)
 - [ ] Add model-aware benchmark comparison mode
 
-### 2) Search ergonomics
+### 3) Search ergonomics
 
 - [ ] Add `--query-file` for long prompts
 - [ ] Add output-mode defaults for `--min-score`
 - [ ] Improve no-result guidance with suggested filters/thresholds
-
-### 3) Scale path
-
-- [ ] Evaluate ANN backend for large repos (optional mode)
-- [ ] Prototype memory-mapped vector loads
-- [ ] Add large-repo benchmark fixture/profile
 
 ## Docs
 
