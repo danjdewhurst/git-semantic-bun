@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks";
 import { formatBytes } from "../core/format.ts";
 import {
+  getAnnIndexInfo,
   getIndexSizeBytes,
   getVectorDtype,
   getVectorSizeBytes,
@@ -18,12 +19,20 @@ export async function runStats(): Promise<void> {
   const bytes = getIndexSizeBytes(paths.indexPath);
   const vectorBytes = getVectorSizeBytes(paths.indexPath);
   const vectorDtype = getVectorDtype(paths.indexPath);
+  const annInfo = getAnnIndexInfo(paths.indexPath);
 
   console.log(`Indexed commits : ${index.commits.length}`);
   console.log(`Model           : ${index.modelName}`);
   console.log(`Index size      : ${formatBytes(bytes)} (${bytes} bytes)`);
   console.log(`Vector size     : ${formatBytes(vectorBytes)} (${vectorBytes} bytes)`);
   console.log(`Vector dtype    : ${vectorDtype}`);
+  if (annInfo.exists) {
+    console.log(
+      `ANN index       : ${formatBytes(annInfo.sizeBytes)} (${annInfo.commitCount} vectors)`,
+    );
+  } else {
+    console.log("ANN index       : not built");
+  }
   console.log(`Load time       : ${(loadEnd - loadStart).toFixed(2)} ms`);
   console.log(`Include patch   : ${index.includePatch}`);
   console.log(`Created at      : ${index.createdAt}`);

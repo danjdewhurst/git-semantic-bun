@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import {
   loadBenchmarkHistory,
   renderBenchmarkHistorySummary,
@@ -11,6 +12,7 @@ import { bm25ScoresFromCache, getLexicalCacheForIndex } from "../core/lexical-ca
 import { resolveRepoPaths } from "../core/paths.ts";
 import { combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
+import { type AnnIndexHandle, AnnSearch, ExactSearch } from "../core/vector-search.ts";
 
 export interface BenchmarkOptions {
   author?: string;
@@ -25,6 +27,7 @@ export interface BenchmarkOptions {
   recencyBoost?: boolean;
   save?: boolean;
   history?: boolean;
+  ann?: boolean;
 }
 
 export async function runBenchmark(query: string, options: BenchmarkOptions): Promise<void> {
@@ -117,4 +120,73 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
     });
     console.log(`Saved benchmark run to ${paths.benchmarkHistoryPath}`);
   }
+
+  if (options.ann) {
+    await runAnnComparison(
+      normalisedQueryEmbedding,
+      filtered,
+      options.limit,
+      options.iterations,
+      paths.annIndexPath,
+    );
+  }
+}
+
+async function runAnnComparison(
+  queryEmbedding: number[],
+  filtered: readonly { embedding: number[] }[],
+  limit: number,
+  iterations: number,
+  annIndexPath: string,
+): Promise<void> {
+  const { performance } = await import("node:perf_hooks");
+
+  if (!existsSync(annIndexPath)) {
+    console.log("\nANN comparison: no ANN index found. Run `gsb index` with usearch installed.");
+    return;
+  }
+
+  const { loadAnnIndex } = await import("../core/ann-index.ts");
+
+  let annHandle: AnnIndexHandle;
+  try {
+    annHandle = await loadAnnIndex(annIndexPath, 384);
+  } catch (error) {
+    console.log(`\nANN comparison: failed to load ANN index: ${(error as Error).message}`);
+    return;
+  }
+
+  const exact = new ExactSearch();
+  const ann = new AnnSearch(annHandle);
+
+  // Benchmark exact
+  const exactStart = performance.now();
+  let exactResults: { index: number; score: number }[] = [];
+  for (let i = 0; i < iterations; i += 1) {
+    exactResults = exact.search(queryEmbedding, filtered as never, limit);
+  }
+  const exactMs = performance.now() - exactStart;
+
+  // Benchmark ANN
+  const annStart = performance.now();
+  let annResults: { index: number; score: number }[] = [];
+  for (let i = 0; i < iterations; i += 1) {
+    annResults = ann.search(queryEmbedding, filtered as never, limit);
+  }
+  const annMs = performance.now() - annStart;
+
+  // Compute recall: how many of exact top-K appear in ANN top-K
+  const exactSet = new Set(exactResults.map((r) => r.index));
+  const annSet = new Set(annResults.map((r) => r.index));
+  let overlap = 0;
+  for (const idx of exactSet) {
+    if (annSet.has(idx)) overlap += 1;
+  }
+  const recall = exactSet.size > 0 ? overlap / exactSet.size : 1;
+
+  console.log(`\nANN comparison (${iterations} iterations):`);
+  console.log(`Exact semantic : ${exactMs.toFixed(3)} ms`);
+  console.log(`ANN semantic   : ${annMs.toFixed(3)} ms`);
+  console.log(`Speedup        : ${annMs > 0 ? (exactMs / annMs).toFixed(2) : "∞"}x`);
+  console.log(`Recall@${limit}      : ${(recall * 100).toFixed(1)}%`);
 }

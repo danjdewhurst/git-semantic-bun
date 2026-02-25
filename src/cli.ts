@@ -13,6 +13,7 @@ import {
   parseDateOption,
   parseLimitOption,
   parseSearchOutputFormat,
+  parseStrategyOption,
   parseVectorDtypeOption,
   parseWeightOption,
 } from "./core/parsing.ts";
@@ -148,6 +149,7 @@ program
   .option("--snippets", "Include compact diff snippets in search output", false)
   .option("--snippet-lines <count>", "Diff snippet body lines to include", limitParser, 12)
   .option("--min-score <score>", "Minimum final score threshold", Number.parseFloat)
+  .option("--strategy <strategy>", "Search strategy: auto, exact, ann", parseStrategyOption, "auto")
   .action(
     async (
       query: string,
@@ -166,6 +168,7 @@ program
         snippets: boolean;
         snippetLines: number;
         minScore?: number;
+        strategy: "auto" | "exact" | "ann";
       },
     ) => {
       await runSearch(query, options);
@@ -201,6 +204,7 @@ program
   .option("--no-recency-boost", "Disable recency scoring boost")
   .option("--min-score <score>", "Minimum final score threshold", Number.parseFloat)
   .option("--jsonl", "Emit one compact JSON object per query line", false)
+  .option("--strategy <strategy>", "Search strategy: auto, exact, ann", parseStrategyOption, "auto")
   .action(
     async (options: {
       author?: string;
@@ -214,6 +218,7 @@ program
       recencyBoost: boolean;
       minScore?: number;
       jsonl: boolean;
+      strategy: "auto" | "exact" | "ann";
     }) => {
       await runServe(options);
     },
@@ -308,6 +313,7 @@ program
   .option("--no-recency-boost", "Disable recency scoring boost")
   .option("--save", "Save benchmark result to history log", false)
   .option("--history", "Show saved benchmark history", false)
+  .option("--ann", "Compare exact vs ANN search strategies", false)
   .action(
     async (
       query: string | undefined,
@@ -324,6 +330,7 @@ program
         recencyBoost: boolean;
         save: boolean;
         history: boolean;
+        ann: boolean;
       },
     ) => {
       if (!options.history && (!query || query.trim().length === 0)) {

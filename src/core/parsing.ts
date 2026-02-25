@@ -51,6 +51,16 @@ export function parseVectorDtypeOption(value: string): VectorDtypeOption {
   throw new Error(`Invalid vector dtype: ${value}. Allowed values: f32, f16.`);
 }
 
+import type { SearchStrategyName } from "./types.ts";
+
+export function parseStrategyOption(value: string): SearchStrategyName {
+  if (value === "auto" || value === "exact" || value === "ann") {
+    return value;
+  }
+
+  throw new Error(`Invalid strategy: ${value}. Allowed values: auto, exact, ann.`);
+}
+
 export function parseWeightOption(value: string, flagName: string): number {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) {

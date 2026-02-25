@@ -1,7 +1,7 @@
 import { DEFAULT_BATCH_SIZE } from "../core/constants.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { commitExists, isAncestorCommit, readCommits } from "../core/git.ts";
-import { loadIndex, saveIndex } from "../core/index-store.ts";
+import { loadIndex, saveIndexWithAnn } from "../core/index-store.ts";
 import { dedupeCommits, embedCommits } from "../core/indexing.ts";
 import { validateBatchSize } from "../core/parsing.ts";
 import { ensureSemanticDirectories, resolveRepoPaths } from "../core/paths.ts";
@@ -112,7 +112,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
 
-  saveIndex(paths.indexPath, {
+  await saveIndexWithAnn(paths.indexPath, {
     ...index,
     includePatch,
     vectorDtype: options.vectorDtype ?? index.vectorDtype ?? "f32",

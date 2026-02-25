@@ -9,7 +9,7 @@ export async function runDoctor(options: DoctorOptions = {}): Promise<void> {
   const paths = resolveRepoPaths();
 
   if (options.fix) {
-    const fixed = runDoctorFixes(paths);
+    const fixed = await runDoctorFixes(paths);
     console.log("Applied fixes:");
     for (const action of fixed.actions) {
       console.log(`- ${action}`);

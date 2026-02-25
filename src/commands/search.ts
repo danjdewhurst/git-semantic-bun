@@ -17,9 +17,10 @@ import {
   normaliseWeights,
   recencyScore,
 } from "../core/ranking.ts";
-import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
+import { normaliseVector } from "../core/similarity.ts";
 import { selectTopKByMappedScore } from "../core/topk.ts";
-import type { SearchFilters, SemanticIndex } from "../core/types.ts";
+import type { SearchFilters, SearchStrategyName, SemanticIndex } from "../core/types.ts";
+import { type AnnIndexHandle, createSearchStrategy } from "../core/vector-search.ts";
 
 export interface SearchOptions {
   author?: string;
@@ -36,6 +37,7 @@ export interface SearchOptions {
   snippets?: boolean;
   snippetLines?: number;
   minScore?: number;
+  strategy?: SearchStrategyName;
 }
 
 interface RankedResult {
@@ -194,11 +196,13 @@ function renderMarkdownOutput(payload: SearchOutputPayload): void {
   }
 }
 
-interface SearchExecutionContext {
+export interface SearchExecutionContext {
   index: SemanticIndex;
   embedder: Embedder;
   repoRoot: string;
-  lexicalCache?: LexicalCache;
+  lexicalCache?: LexicalCache | undefined;
+  strategyName?: SearchStrategyName | undefined;
+  annHandle?: AnnIndexHandle | undefined;
 }
 
 export async function executeSearch(
@@ -253,33 +257,53 @@ export async function executeSearch(
 
   const normalisedQueryEmbedding = normaliseVector(queryEmbedding);
 
+  const strategyName = options.strategy ?? context.strategyName ?? "auto";
+  const strategy = createSearchStrategy({
+    strategyName,
+    commitCount: index.commits.length,
+    annHandle: context.annHandle,
+  });
+
+  // Semantic pre-selection: strategy returns top candidates by embedding similarity.
+  // For ANN, we over-fetch so hybrid re-ranking can promote lexical/recency hits.
+  const semanticOverfetch = strategy.name === "ann" ? limit * 10 : limit * 3;
+  const semanticCandidates = strategy.search(normalisedQueryEmbedding, filtered, semanticOverfetch);
+
   const lexicalByCommit = bm25ScoresFromCache(
     query,
     lexicalCache,
     filtered.map((commit) => commit.hash),
   );
 
-  const rankedResultsRaw = selectTopKByMappedScore(filtered, limit, (commit) => {
-    const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
-    const lexical = lexicalByCommit.get(commit.hash) ?? 0;
-    const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
-    const score = combineScores(semanticScore, lexical, recency, scoreWeights);
+  // Hybrid re-rank: combine semantic scores with BM25 lexical + recency
+  const reranked = semanticCandidates
+    .map((candidate) => {
+      const commit = filtered[candidate.index];
+      if (!commit) return null;
 
-    return {
-      score,
-      mapped: {
+      const lexical = lexicalByCommit.get(commit.hash) ?? 0;
+      const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
+      const score = combineScores(candidate.score, lexical, recency, scoreWeights);
+
+      return {
         hash: commit.hash,
         author: commit.author,
         date: commit.date,
         message: commit.message,
         files: commit.files,
         score,
-        semanticScore,
+        semanticScore: candidate.score,
         lexicalScore: lexical,
         recencyScore: recency,
-      },
-    };
-  }).filter((result) => result.score >= minScore);
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+
+  // Final top-K selection from re-ranked candidates
+  const rankedResultsRaw = selectTopKByMappedScore(reranked, limit, (result) => ({
+    score: result.score,
+    mapped: result,
+  })).filter((result) => result.score >= minScore);
 
   if (rankedResultsRaw.length === 0) {
     return null;
@@ -310,14 +334,23 @@ export async function executeSearch(
 }
 
 export async function runSearch(query: string, options: SearchOptions): Promise<void> {
+  const { existsSync } = await import("node:fs");
+  const { loadAnnIndex } = await import("../core/ann-index.ts");
+
   const paths = resolveRepoPaths();
   const index = loadIndex(paths.indexPath);
   const embedder = await createEmbedder(index.modelName, paths.cacheDir);
+
+  let annHandle: AnnIndexHandle | undefined;
+  if (existsSync(paths.annIndexPath)) {
+    annHandle = await loadAnnIndex(paths.annIndexPath, 384);
+  }
 
   const payload = await executeSearch(query, options, {
     index,
     embedder,
     repoRoot: paths.repoRoot,
+    annHandle,
   });
 
   if (!payload) {

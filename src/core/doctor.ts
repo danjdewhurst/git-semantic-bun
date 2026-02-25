@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { getVectorSizeBytes, loadIndex, saveIndex } from "./index-store.ts";
+import { getAnnIndexInfo, getVectorSizeBytes, loadIndex, saveIndex } from "./index-store.ts";
 import { saveMetadata } from "./metadata.ts";
 import { type RepoPaths, ensureSemanticDirectories } from "./paths.ts";
 import type { SemanticIndex } from "./types.ts";
@@ -137,10 +137,38 @@ export function runDoctorChecks(paths: RepoPaths): DoctorCheck[] {
     detail: readability.detail,
   });
 
+  // ANN index check — informational, not a failure if missing
+  const annInfo = getAnnIndexInfo(paths.indexPath);
+  if (annInfo.exists) {
+    let annOk = true;
+    let annDetail = `found (${annInfo.commitCount} vectors, ${annInfo.sizeBytes} bytes)`;
+
+    // Check if commit count matches current index
+    if (readability.ok) {
+      try {
+        const idx = loadIndex(paths.indexPath);
+        if (annInfo.commitCount !== idx.commits.length) {
+          annOk = false;
+          annDetail = `stale: ANN has ${annInfo.commitCount} vectors but index has ${idx.commits.length} commits`;
+        }
+      } catch {
+        // Already reported as index readability failure
+      }
+    }
+
+    checks.push({ name: "ann index", ok: annOk, detail: annDetail });
+  } else {
+    checks.push({
+      name: "ann index",
+      ok: true,
+      detail: "not built (optional, install usearch to enable)",
+    });
+  }
+
   return checks;
 }
 
-export function runDoctorFixes(paths: RepoPaths): DoctorFixResult {
+export async function runDoctorFixes(paths: RepoPaths): Promise<DoctorFixResult> {
   const actions: string[] = [];
   const warnings: string[] = [];
 
@@ -182,6 +210,20 @@ export function runDoctorFixes(paths: RepoPaths): DoctorFixResult {
       actions.push("recreated metadata.json from current index model");
     } else {
       warnings.push("metadata.json still missing (no readable index available to infer model)");
+    }
+  }
+
+  // Check for stale ANN index and rebuild if usearch is available
+  if (loadedIndex) {
+    const annInfo = getAnnIndexInfo(paths.indexPath);
+    if (annInfo.exists && annInfo.commitCount !== loadedIndex.commits.length) {
+      try {
+        const { saveIndexWithAnn } = await import("./index-store.ts");
+        await saveIndexWithAnn(paths.indexPath, loadedIndex);
+        actions.push("rebuilt stale ANN index");
+      } catch (error) {
+        warnings.push(`ANN rebuild failed: ${(error as Error).message}`);
+      }
     }
   }
 

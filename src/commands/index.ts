@@ -1,7 +1,7 @@
 import { DEFAULT_BATCH_SIZE, DEFAULT_MODEL } from "../core/constants.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { readCommits } from "../core/git.ts";
-import { saveIndex } from "../core/index-store.ts";
+import { saveIndexWithAnn } from "../core/index-store.ts";
 import { embedCommits } from "../core/indexing.ts";
 import { loadMetadata } from "../core/metadata.ts";
 import { validateBatchSize } from "../core/parsing.ts";
@@ -59,7 +59,7 @@ export async function runIndex(options: IndexOptions): Promise<void> {
   });
 
   const now = new Date().toISOString();
-  saveIndex(paths.indexPath, {
+  await saveIndexWithAnn(paths.indexPath, {
     version: 1,
     modelName,
     createdAt: now,

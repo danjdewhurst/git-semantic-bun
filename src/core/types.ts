@@ -37,6 +37,8 @@ export interface SearchFilters {
   file?: string;
 }
 
+export type SearchStrategyName = "auto" | "exact" | "ann";
+
 export interface InitMetadata {
   modelName: string;
   initializedAt: string;

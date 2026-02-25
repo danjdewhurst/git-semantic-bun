@@ -23,6 +23,7 @@ describe("runDoctorChecks", () => {
         compactVectorPath: path.join(semanticDir, "index.vec.f32"),
         metadataPath: path.join(cacheDir, "metadata.json"),
         benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl"),
+        annIndexPath: path.join(semanticDir, "index.ann.usearch"),
       };
 
       writeFileSync(paths.indexPath, "{}\n", "utf8");
@@ -41,7 +42,7 @@ describe("runDoctorChecks", () => {
     }
   });
 
-  it("applies safe repairs with --fix logic", () => {
+  it("applies safe repairs with --fix logic", async () => {
     const dir = mkdtempSync(path.join(tmpdir(), "gsb-doctor-fix-test-"));
     try {
       const semanticDir = path.join(dir, "semantic-index");
@@ -58,6 +59,7 @@ describe("runDoctorChecks", () => {
         compactVectorPath: path.join(semanticDir, "index.vec.f32"),
         metadataPath: path.join(cacheDir, "metadata.json"),
         benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl"),
+        annIndexPath: path.join(semanticDir, "index.ann.usearch"),
       };
 
       writeFileSync(
@@ -87,7 +89,7 @@ describe("runDoctorChecks", () => {
         "utf8",
       );
 
-      const result = runDoctorFixes(paths);
+      const result = await runDoctorFixes(paths);
       expect(result.actions.length).toBeGreaterThan(0);
 
       const checks = runDoctorChecks(paths);

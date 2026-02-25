@@ -12,6 +12,7 @@ export interface RepoPaths {
   compactVectorPath: string;
   metadataPath: string;
   benchmarkHistoryPath: string;
+  annIndexPath: string;
 }
 
 export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
@@ -39,6 +40,7 @@ export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
     compactVectorPath: path.join(semanticDir, "index.vec.f32"),
     metadataPath: path.join(cacheDir, "metadata.json"),
     benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl"),
+    annIndexPath: path.join(semanticDir, "index.ann.usearch"),
   };
 }
 

@@ -12,6 +12,13 @@ interface CompactMetaCommit {
   vectorOffset: number;
 }
 
+interface AnnIndexMeta {
+  file: string;
+  metric: string;
+  connectivity: number;
+  commitCount: number;
+}
+
 interface CompactIndexMeta {
   version: 2;
   modelName: string;
@@ -27,6 +34,7 @@ interface CompactIndexMeta {
     count: number;
     normalised: boolean;
   };
+  ann?: AnnIndexMeta;
   commits: CompactMetaCommit[];
 }
 
@@ -451,6 +459,51 @@ export function saveIndex(indexPath: string, index: SemanticIndex): void {
   saveCompactIndex(indexPath, indexWithChecksum);
 }
 
+export async function saveIndexWithAnn(indexPath: string, index: SemanticIndex): Promise<void> {
+  saveIndex(indexPath, index);
+  await buildAndSaveAnnIndex(indexPath, index);
+}
+
+async function buildAndSaveAnnIndex(indexPath: string, index: SemanticIndex): Promise<void> {
+  const { isAnnAvailable, buildAnnIndex } = await import("./ann-index.ts");
+
+  if (!(await isAnnAvailable())) {
+    return;
+  }
+
+  const dimension = index.commits[0]?.embedding.length ?? 0;
+  if (dimension === 0 || index.commits.length === 0) {
+    return;
+  }
+
+  const count = index.commits.length;
+  const vectors = new Float32Array(count * dimension);
+  for (let i = 0; i < count; i += 1) {
+    const embedding = index.commits[i]?.embedding ?? [];
+    for (let d = 0; d < dimension; d += 1) {
+      vectors[i * dimension + d] = embedding[d] ?? 0;
+    }
+  }
+
+  const annHandle = await buildAnnIndex(vectors, dimension, count);
+  const semanticDir = path.dirname(indexPath);
+  const annPath = path.join(semanticDir, "index.ann.usearch");
+  annHandle.save(annPath);
+
+  // Update compact meta with ANN info
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
+  if (existsSync(metaPath)) {
+    const meta = JSON.parse(readFileSync(metaPath, "utf8")) as CompactIndexMeta;
+    meta.ann = {
+      file: "index.ann.usearch",
+      metric: "ip",
+      connectivity: 16,
+      commitCount: count,
+    };
+    writeFileSync(metaPath, `${JSON.stringify(meta, null, 2)}\n`, "utf8");
+  }
+}
+
 export function getIndexSizeBytes(indexPath: string): number {
   return statSync(indexPath).size;
 }
@@ -468,6 +521,37 @@ export function getVectorSizeBytes(indexPath: string): number {
   }
 
   return 0;
+}
+
+export function getAnnIndexInfo(indexPath: string): {
+  exists: boolean;
+  sizeBytes: number;
+  commitCount: number;
+} {
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
+  if (!existsSync(metaPath)) {
+    return { exists: false, sizeBytes: 0, commitCount: 0 };
+  }
+
+  try {
+    const meta = validateCompactMeta(JSON.parse(readFileSync(metaPath, "utf8")));
+    if (!meta.ann) {
+      return { exists: false, sizeBytes: 0, commitCount: 0 };
+    }
+
+    const annPath = path.join(path.dirname(metaPath), meta.ann.file);
+    if (!existsSync(annPath)) {
+      return { exists: false, sizeBytes: 0, commitCount: meta.ann.commitCount };
+    }
+
+    return {
+      exists: true,
+      sizeBytes: statSync(annPath).size,
+      commitCount: meta.ann.commitCount,
+    };
+  } catch {
+    return { exists: false, sizeBytes: 0, commitCount: 0 };
+  }
 }
 
 export function getVectorDtype(indexPath: string): VectorDtype {
