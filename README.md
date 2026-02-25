@@ -130,6 +130,28 @@ bun run lint
 bun run build
 ```
 
+## Embedding model options
+
+Default model:
+
+- `Xenova/all-MiniLM-L6-v2` (fast, good general semantic quality)
+
+You can change model with:
+
+- `gsb init --model <model-id>` (sets default in metadata)
+- `gsb index --model <model-id>` (one-off override)
+
+Other good options:
+
+- `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (better for multilingual commit/query text)
+- `Xenova/all-mpnet-base-v2` (stronger semantic quality, heavier/slower)
+
+Rule of thumb:
+
+- MiniLM for speed
+- MPNet for quality
+- multilingual MiniLM for mixed-language repositories
+
 ## Practical notes
 
 - Everything runs locally.
