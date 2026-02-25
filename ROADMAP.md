@@ -65,8 +65,8 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 - [x] Add `--min-score` to suppress weak matches.
 
 ### 4.2 Agent-friendly commands
-- [ ] Add `gsb doctor` to validate environment/index/model cache.
-- [ ] Add `gsb benchmark` for model/ranking comparisons.
+- [x] Add `gsb doctor` to validate environment/index/model cache.
+- [x] Add `gsb benchmark` for model/ranking comparisons.
 
 **Success criteria:** easier to trust, debug, and automate in coding-agent pipelines.
 

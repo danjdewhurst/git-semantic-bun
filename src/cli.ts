@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { Command, InvalidArgumentError } from "commander";
 import { runBenchmark } from "./commands/benchmark.ts";
+import { runDoctor } from "./commands/doctor.ts";
 import { runIndex } from "./commands/index.ts";
 import { runInit } from "./commands/init.ts";
 import { runSearch } from "./commands/search.ts";
@@ -133,6 +134,13 @@ program
   .description("Show semantic index stats")
   .action(async () => {
     await runStats();
+  });
+
+program
+  .command("doctor")
+  .description("Check semantic index health, metadata, and cache readiness")
+  .action(async () => {
+    await runDoctor();
   });
 
 program
