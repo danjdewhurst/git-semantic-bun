@@ -12,12 +12,12 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 ## Milestone 1 — Retrieval Quality (next)
 
 ### 1.1 Improve embedding input construction
-- [ ] Replace current `hash/author/date/message/files` flat payload with weighted sections:
-  - [ ] `message` (highest signal)
-  - [ ] `files` (medium signal)
-  - [ ] optional patch summary (controlled by `--full`)
-- [ ] Remove low-signal metadata (`hash`, raw timestamp) from embedding text.
-- [ ] Add tests verifying text construction rules.
+- [x] Replace current `hash/author/date/message/files` flat payload with weighted sections:
+  - [x] `message` (highest signal)
+  - [x] `files` (medium signal)
+  - [x] optional patch summary (controlled by `--full`)
+- [x] Remove low-signal metadata (`hash`, raw timestamp) from embedding text.
+- [x] Add tests verifying text construction rules.
 
 **Success criteria:** better top-5 relevance on representative queries without regression in speed >15%.
 
