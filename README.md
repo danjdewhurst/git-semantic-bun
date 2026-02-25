@@ -180,6 +180,39 @@ Example (LLM context prep):
 gsb search "retry backoff bug in webhook delivery" --format json -n 8 > semantic-context.json
 ```
 
+## Agent config snippet (for `AGENTS.md`, `CLAUDE.md`, etc.)
+
+Copy/paste this into your user- or project-level agent instruction file so your coding agent consistently uses semantic git retrieval:
+
+```markdown
+## Semantic Git Recall (gsb)
+
+When working in this repository, use `gsb` to retrieve relevant historical commits before implementing changes.
+
+### When to use
+
+- Bug fixes
+- Refactors
+- Changes in auth, retries, caching, concurrency, migrations, or any risky subsystem
+- Any task where prior implementation context could reduce regressions
+
+### Required workflow
+
+1. Run a semantic search first:
+   - `gsb search "<task summary>" --format markdown -n 5`
+2. If preparing context for another LLM/tool, use JSON:
+   - `gsb search "<task summary>" --format json -n 8`
+3. Use top matches to guide:
+   - file selection
+   - implementation approach
+   - regression checks
+4. Reference relevant commit hashes in your final summary/PR notes.
+
+If `gsb` is unavailable or index is missing, report that clearly and continue with best-effort fallback (`git log`/`git blame`).
+```
+
+Tip: run `gsb update` regularly so agent retrieval includes recent commits.
+
 ## Before vs after
 
 Before:
