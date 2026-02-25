@@ -51,6 +51,10 @@ function siftDown<T>(heap: HeapItem<T>[], index: number): void {
   }
 }
 
+function sortHeapDescending<T>(heap: HeapItem<T>[]): T[] {
+  return heap.sort((a, b) => b.score - a.score).map((entry) => entry.item);
+}
+
 export function selectTopKByScore<T>(
   items: readonly T[],
   limit: number,
@@ -78,5 +82,36 @@ export function selectTopKByScore<T>(
     siftDown(heap, 0);
   }
 
-  return heap.sort((a, b) => b.score - a.score).map((entry) => entry.item);
+  return sortHeapDescending(heap);
+}
+
+export function selectTopKByMappedScore<T, U>(
+  items: readonly T[],
+  limit: number,
+  mapWithScore: (item: T) => { mapped: U; score: number },
+): U[] {
+  if (limit <= 0 || items.length === 0) {
+    return [];
+  }
+
+  const heap: HeapItem<U>[] = [];
+
+  for (const item of items) {
+    const { mapped, score } = mapWithScore(item);
+
+    if (heap.length < limit) {
+      heap.push({ item: mapped, score });
+      siftUp(heap, heap.length - 1);
+      continue;
+    }
+
+    if (score <= (heap[0]?.score ?? Number.NEGATIVE_INFINITY)) {
+      continue;
+    }
+
+    heap[0] = { item: mapped, score };
+    siftDown(heap, 0);
+  }
+
+  return sortHeapDescending(heap);
 }

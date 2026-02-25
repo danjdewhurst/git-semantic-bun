@@ -18,7 +18,7 @@ import {
   recencyScore,
 } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
-import { selectTopKByScore } from "../core/topk.ts";
+import { selectTopKByMappedScore } from "../core/topk.ts";
 import type { SearchFilters, SemanticIndex } from "../core/types.ts";
 
 export interface SearchOptions {
@@ -259,28 +259,27 @@ export async function executeSearch(
     filtered.map((commit) => commit.hash),
   );
 
-  const scored = filtered.map((commit) => {
+  const rankedResultsRaw = selectTopKByMappedScore(filtered, limit, (commit) => {
     const semanticScore = cosineSimilarityUnit(normalisedQueryEmbedding, commit.embedding);
     const lexical = lexicalByCommit.get(commit.hash) ?? 0;
     const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
     const score = combineScores(semanticScore, lexical, recency, scoreWeights);
 
     return {
-      hash: commit.hash,
-      author: commit.author,
-      date: commit.date,
-      message: commit.message,
-      files: commit.files,
       score,
-      semanticScore,
-      lexicalScore: lexical,
-      recencyScore: recency,
+      mapped: {
+        hash: commit.hash,
+        author: commit.author,
+        date: commit.date,
+        message: commit.message,
+        files: commit.files,
+        score,
+        semanticScore,
+        lexicalScore: lexical,
+        recencyScore: recency,
+      },
     };
-  });
-
-  const rankedResultsRaw = selectTopKByScore(scored, limit, (entry) => entry.score).filter(
-    (result) => result.score >= minScore,
-  );
+  }).filter((result) => result.score >= minScore);
 
   if (rankedResultsRaw.length === 0) {
     return null;

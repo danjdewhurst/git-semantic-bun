@@ -35,7 +35,7 @@ Current priorities for `git-semantic-bun`.
 
 - [x] Add daemon mode (`gsb serve`) for warm query reuse
 - [x] Cache BM25 lexical stats per index checksum
-- [ ] Optimise scoring hot path to reduce allocation/GC pressure
+- [x] Optimise scoring hot path to reduce allocation/GC pressure
 - [ ] Prototype memory-mapped/lazy vector loading
 - [ ] Evaluate optional ANN backend for very large repositories
 - [ ] Add perf CI baseline + regression guardrails
