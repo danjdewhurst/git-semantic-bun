@@ -19,6 +19,7 @@
     "toc": "bash ./scripts/toc.sh",
     "perf:ci": "bun run scripts/perf-ci.ts --baseline .github/perf-baseline.json --output perf-artifacts/perf-snapshot.json",
     "perf:baseline": "bun run scripts/perf-ci.ts --write-baseline --baseline .github/perf-baseline.json --output perf-artifacts/perf-snapshot.json",
+    "prepare": "git config core.hooksPath .githooks",
     "prepublishOnly": "bun run typecheck && bun test"
   },
   "repository": {

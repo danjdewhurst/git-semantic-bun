@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Run Biome lint and format check
+bun run lint
+
+# Regenerate TOC.md and stage it if changed
+bun run toc
+git add TOC.md
