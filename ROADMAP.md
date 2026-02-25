@@ -93,6 +93,10 @@ The old README checklist items are preserved here:
 - Multi-model benchmark command (tracked in Milestone 4.2)
 - Ignore/include path patterns for indexing (tracked in Nice-to-have backlog)
 
+## Next release planning
+
+v0.3.0 scoped plan: [`docs/v0.3.0-plan.md`](./docs/v0.3.0-plan.md)
+
 ## Delivery plan
 
 1. **Ship Milestone 1 first** (highest user-visible value).
