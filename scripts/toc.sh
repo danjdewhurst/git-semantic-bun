@@ -61,7 +61,7 @@ GO_TOC_BIN="$(ensure_go_toc)"
   --fancy \
   --summary \
   --summary-chars 120 \
-  --max-depth 1 \
+  --max-depth 4 \
   --title "Docs" \
   --output docs/README.md
 

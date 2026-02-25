@@ -1,5 +1,12 @@
 # Docs 📚
 
+- 📁 **plans/**
+  - 📄 [plugin-system.md](plans/plugin-system.md)
+    > 💬 The project is a ~2,500-line CLI with clean separation between commands () and core logic (). It already has natural...
+  - 📄 [v0.3.0.md](plans/v0.3.0.md)
+    > 💬 Status: Delivered in .
+  - 📄 [v0.4-performance.md](plans/v0.4-performance.md)
+    > 💬 Goal: improve end-to-end speed (cold start, warm query latency, large-repo scalability) without sacrificing result...
 - 📄 [architecture.md](architecture.md)
   > 💬 src/ ├── cli.ts # Entry point — Commander program definition ├── index.ts # Public re-exports ├──...
 - 📄 [ci-and-releases.md](ci-and-releases.md)
