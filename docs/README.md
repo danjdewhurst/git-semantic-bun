@@ -19,7 +19,6 @@
   > 💬 git clone https://github.com/danjdewhurst/git-semantic-bun.git cd git-semantic-bun bun install bun link
 - 📄 [plugins.md](plugins.md)
   > 💬 gsb supports an extensible plugin system. Plugins can add custom embedders, search strategies, scoring signals, output...
-- 📄 [README.md](README.md)
 - 📄 [search-ranking.md](search-ranking.md)
   > 💬 The query and each commit's embedding text are encoded into vectors using the same Transformers.js model. Similarity is...
 - 📄 [serve-daemon.md](serve-daemon.md)
