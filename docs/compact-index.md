@@ -7,6 +7,7 @@
 - `index.json` — canonical metadata + compatibility fallback
 - `index.meta.json` — compact metadata sidecar
 - `index.vec.f32` or `index.vec.f16` — dense vector matrix (row-major)
+- `index.ann.usearch` — optional HNSW ANN index (built when `usearch` is installed)
 
 ## Compact metadata shape
 
@@ -25,6 +26,12 @@
     "dimension": 384,
     "count": 12034,
     "normalised": true
+  },
+  "ann": {
+    "file": "index.ann.usearch",
+    "metric": "ip",
+    "connectivity": 16,
+    "commitCount": 12034
   },
   "commits": [
     {
@@ -54,6 +61,17 @@ Set at index/update time:
 - If compact sidecars are present and valid, they are used for reads.
 - If compact sidecars are missing, `index.json` is used.
 - `gsb doctor --fix` can regenerate missing compact sidecars from readable index data.
+
+## ANN index
+
+When `usearch` is installed, `gsb index` and `gsb update` build an HNSW approximate nearest neighbour index alongside the compact sidecar.
+
+- File: `index.ann.usearch`
+- Metric: inner product (`ip`) — equivalent to cosine for pre-normalised vectors
+- Connectivity: 16 (HNSW graph degree)
+- The `ann` block in `index.meta.json` tracks the ANN file and its commit count
+- `gsb doctor` detects stale ANN indexes (commit count mismatch); `--fix` rebuilds them
+- When `usearch` is not installed, all ANN-related operations are skipped silently
 
 ## Notes
 

@@ -11,5 +11,7 @@
 │   └── [README.md](docs/README.md)
 ├── [README.md](README.md)
 │   > CI Licence: MIT
-└── [ROADMAP.md](ROADMAP.md)
-    > Current priorities for .
+├── [ROADMAP.md](ROADMAP.md)
+│   > Current priorities for .
+└── [TOC.md](TOC.md)
+    > ├── docs/ │ ├── plans/ │ │ ├── v0.3.0.md │ │ │ > Status: Delivered in . │ │ └──...

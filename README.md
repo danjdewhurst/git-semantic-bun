@@ -97,6 +97,7 @@ Ranking/output controls:
 - `--min-score <score>`
 - `--snippets`
 - `--snippet-lines <count>`
+- `--strategy <auto|exact|ann>`
 
 ### `gsb serve`
 
@@ -104,6 +105,7 @@ Runs a warm in-process search daemon (one query per stdin line) to avoid repeate
 
 - Commands: `:reload`, `:quit`
 - Default output is JSON per query; use `--jsonl` for compact one-line JSON objects.
+- `--strategy <auto|exact|ann>` to control search strategy.
 
 Example:
 
@@ -140,6 +142,7 @@ Benchmarks ranking path (baseline full-sort vs heap top-k).
 
 - `--save` appends to `.git/semantic-index/benchmarks.jsonl`
 - `--history` prints recent benchmark runs
+- `--ann` compares exact vs ANN search strategies (recall + speedup)
 
 ## Storage layout
 
@@ -148,8 +151,23 @@ Primary files under `.git/semantic-index/`:
 - `index.json`
 - `index.meta.json`
 - `index.vec.f32` or `index.vec.f16`
+- `index.ann.usearch` (optional, built when `usearch` is installed)
 - `cache/`
 - `benchmarks.jsonl` (if benchmark history is enabled)
+
+## Optional ANN backend
+
+For very large repositories (>10k commits), an approximate nearest neighbour (HNSW) index can reduce semantic lookup to sub-millisecond:
+
+```bash
+bun add usearch   # optional dependency
+gsb index          # builds index.ann.usearch alongside the standard index
+gsb search "fix bug" --strategy ann    # force ANN
+gsb search "fix bug"                   # auto: uses ANN when available and >10k commits
+gsb benchmark "fix bug" --ann          # compare exact vs ANN
+```
+
+When `usearch` is not installed, all commands fall back to exact brute-force search transparently.
 
 ## Examples
 

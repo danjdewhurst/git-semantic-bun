@@ -37,7 +37,7 @@ Current priorities for `git-semantic-bun`.
 - [x] Cache BM25 lexical stats per index checksum
 - [x] Optimise scoring hot path to reduce allocation/GC pressure
 - [x] Prototype memory-mapped/lazy vector loading
-- [ ] Evaluate optional ANN backend for very large repositories
+- [x] Optional ANN backend (usearch HNSW) for very large repositories
 - [ ] Add perf CI baseline + regression guardrails
 
 Details and targets: [`docs/plans/v0.4-performance.md`](./docs/plans/v0.4-performance.md)
