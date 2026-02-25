@@ -14,6 +14,7 @@ export interface IndexOptions {
   batchSize: number;
   include: string[];
   exclude: string[];
+  vectorDtype?: "f32" | "f16";
 }
 
 export async function runIndex(options: IndexOptions): Promise<void> {
@@ -60,6 +61,7 @@ export async function runIndex(options: IndexOptions): Promise<void> {
     lastUpdatedAt: now,
     repositoryRoot: paths.repoRoot,
     includePatch: options.full,
+    vectorDtype: options.vectorDtype ?? "f32",
     commits: indexedCommits
   });
 

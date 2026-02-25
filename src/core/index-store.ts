@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { SemanticIndex } from "./types.ts";
+import type { SemanticIndex, VectorDtype } from "./types.ts";
 
 interface CompactMetaCommit {
   hash: string;
@@ -22,7 +22,7 @@ interface CompactIndexMeta {
   checksum?: string;
   vector: {
     file: string;
-    dtype: "float32";
+    dtype: "float32" | "float16";
     dimension: number;
     count: number;
     normalised: boolean;
@@ -56,6 +56,76 @@ function computeChecksum(index: SemanticIndex): string {
   }
 
   return hash.digest("hex");
+}
+
+function float32ToFloat16(value: number): number {
+  const floatView = new Float32Array(1);
+  const intView = new Uint32Array(floatView.buffer);
+  floatView[0] = value;
+  const x = intView[0] ?? 0;
+
+  const sign = (x >>> 31) & 0x1;
+  const exponent = (x >>> 23) & 0xff;
+  const mantissa = x & 0x7fffff;
+
+  if (exponent === 0xff) {
+    return (sign << 15) | (mantissa ? 0x7e00 : 0x7c00);
+  }
+
+  const halfExponent = exponent - 127 + 15;
+  if (halfExponent >= 0x1f) {
+    return (sign << 15) | 0x7c00;
+  }
+
+  if (halfExponent <= 0) {
+    if (halfExponent < -10) {
+      return sign << 15;
+    }
+
+    const subnormal = (mantissa | 0x800000) >> (1 - halfExponent + 13);
+    return (sign << 15) | subnormal;
+  }
+
+  return (sign << 15) | (halfExponent << 10) | (mantissa >> 13);
+}
+
+function float16ToFloat32(value: number): number {
+  const sign = (value & 0x8000) << 16;
+  const exponent = (value >> 10) & 0x1f;
+  const mantissa = value & 0x03ff;
+
+  let bits: number;
+  if (exponent === 0) {
+    if (mantissa === 0) {
+      bits = sign;
+    } else {
+      let e = -1;
+      let m = mantissa;
+      while ((m & 0x0400) === 0) {
+        m <<= 1;
+        e -= 1;
+      }
+      m &= 0x03ff;
+      bits = sign | ((e + 127) << 23) | (m << 13);
+    }
+  } else if (exponent === 0x1f) {
+    bits = sign | 0x7f800000 | (mantissa << 13);
+  } else {
+    bits = sign | ((exponent - 15 + 127) << 23) | (mantissa << 13);
+  }
+
+  const intView = new Uint32Array(1);
+  const floatView = new Float32Array(intView.buffer);
+  intView[0] = bits;
+  return floatView[0] ?? 0;
+}
+
+function toCompactDtype(dtype: VectorDtype | undefined): "float32" | "float16" {
+  return dtype === "f16" ? "float16" : "float32";
+}
+
+function fromCompactDtype(dtype: "float32" | "float16"): VectorDtype {
+  return dtype === "float16" ? "f16" : "f32";
 }
 
 function validateIndex(parsed: unknown): SemanticIndex {
@@ -129,6 +199,9 @@ function validateIndex(parsed: unknown): SemanticIndex {
     lastUpdatedAt: value.lastUpdatedAt,
     repositoryRoot: value.repositoryRoot,
     includePatch: value.includePatch,
+    ...((value.vectorDtype === "f16" || value.vectorDtype === "f32")
+      ? { vectorDtype: value.vectorDtype }
+      : {}),
     ...(typeof value.checksum === "string" ? { checksum: value.checksum } : {}),
     commits,
   };
@@ -163,7 +236,7 @@ function validateCompactMeta(parsed: unknown): CompactIndexMeta {
     !Array.isArray(value.commits) ||
     !vector ||
     typeof vector.file !== "string" ||
-    vector.dtype !== "float32" ||
+    (vector.dtype !== "float32" && vector.dtype !== "float16") ||
     typeof vector.dimension !== "number" ||
     typeof vector.count !== "number" ||
     typeof vector.normalised !== "boolean"
@@ -208,7 +281,7 @@ function validateCompactMeta(parsed: unknown): CompactIndexMeta {
     ...(typeof value.checksum === "string" ? { checksum: value.checksum } : {}),
     vector: {
       file: vector.file,
-      dtype: "float32",
+      dtype: vector.dtype,
       dimension: vector.dimension,
       count: vector.count,
       normalised: vector.normalised,
@@ -217,27 +290,38 @@ function validateCompactMeta(parsed: unknown): CompactIndexMeta {
   };
 }
 
-function compactPathsFromIndexPath(indexPath: string): { metaPath: string; vectorPath: string } {
+function compactMetaPathFromIndexPath(indexPath: string): string {
   const semanticDir = path.dirname(indexPath);
-  return {
-    metaPath: path.join(semanticDir, "index.meta.json"),
-    vectorPath: path.join(semanticDir, "index.vec.f32"),
-  };
+  return path.join(semanticDir, "index.meta.json");
 }
 
 function saveCompactIndex(indexPath: string, index: SemanticIndex): void {
-  const { metaPath, vectorPath } = compactPathsFromIndexPath(indexPath);
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
+  const compactDtype = toCompactDtype(index.vectorDtype);
+  const vectorExtension = compactDtype === "float16" ? "f16" : "f32";
+  const vectorFile = `index.vec.${vectorExtension}`;
+  const vectorPath = path.join(path.dirname(metaPath), vectorFile);
   const dimension = index.commits[0]?.embedding.length ?? 0;
 
-  const values = new Float32Array(index.commits.length * dimension);
-  for (let row = 0; row < index.commits.length; row += 1) {
-    const embedding = index.commits[row]?.embedding ?? [];
-    for (let col = 0; col < dimension; col += 1) {
-      values[row * dimension + col] = embedding[col] ?? 0;
+  if (compactDtype === "float16") {
+    const values = new Uint16Array(index.commits.length * dimension);
+    for (let row = 0; row < index.commits.length; row += 1) {
+      const embedding = index.commits[row]?.embedding ?? [];
+      for (let col = 0; col < dimension; col += 1) {
+        values[row * dimension + col] = float32ToFloat16(embedding[col] ?? 0);
+      }
     }
+    writeFileSync(vectorPath, Buffer.from(values.buffer));
+  } else {
+    const values = new Float32Array(index.commits.length * dimension);
+    for (let row = 0; row < index.commits.length; row += 1) {
+      const embedding = index.commits[row]?.embedding ?? [];
+      for (let col = 0; col < dimension; col += 1) {
+        values[row * dimension + col] = embedding[col] ?? 0;
+      }
+    }
+    writeFileSync(vectorPath, Buffer.from(values.buffer));
   }
-
-  writeFileSync(vectorPath, Buffer.from(values.buffer));
 
   const meta: CompactIndexMeta = {
     version: 2,
@@ -248,8 +332,8 @@ function saveCompactIndex(indexPath: string, index: SemanticIndex): void {
     includePatch: index.includePatch,
     ...(index.checksum ? { checksum: index.checksum } : {}),
     vector: {
-      file: path.basename(vectorPath),
-      dtype: "float32",
+      file: vectorFile,
+      dtype: compactDtype,
       dimension,
       count: index.commits.length,
       normalised: true,
@@ -268,19 +352,31 @@ function saveCompactIndex(indexPath: string, index: SemanticIndex): void {
 }
 
 function loadCompactIndex(indexPath: string): SemanticIndex {
-  const { metaPath, vectorPath } = compactPathsFromIndexPath(indexPath);
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
   const meta = validateCompactMeta(JSON.parse(readFileSync(metaPath, "utf8")));
+  const vectorPath = path.join(path.dirname(metaPath), meta.vector.file);
   const vectorData = readFileSync(vectorPath);
 
-  const values = new Float32Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 4);
-
-  if (values.length !== meta.vector.dimension * meta.vector.count) {
-    throw new Error("Compact vector file size does not match metadata");
-  }
-
+  const expectedLength = meta.vector.dimension * meta.vector.count;
+  const vectorDtype = fromCompactDtype(meta.vector.dtype);
   const commits = meta.commits.map((commit) => {
     const start = commit.vectorOffset * meta.vector.dimension;
     const end = start + meta.vector.dimension;
+
+    let embedding: number[];
+    if (meta.vector.dtype === "float16") {
+      const values = new Uint16Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 2);
+      if (values.length !== expectedLength) {
+        throw new Error("Compact vector file size does not match metadata");
+      }
+      embedding = Array.from(values.slice(start, end)).map((value) => float16ToFloat32(value));
+    } else {
+      const values = new Float32Array(vectorData.buffer, vectorData.byteOffset, vectorData.byteLength / 4);
+      if (values.length !== expectedLength) {
+        throw new Error("Compact vector file size does not match metadata");
+      }
+      embedding = Array.from(values.slice(start, end));
+    }
 
     return {
       hash: commit.hash,
@@ -288,7 +384,7 @@ function loadCompactIndex(indexPath: string): SemanticIndex {
       date: commit.date,
       message: commit.message,
       files: commit.files,
-      embedding: Array.from(values.slice(start, end)),
+      embedding,
     };
   });
 
@@ -299,6 +395,7 @@ function loadCompactIndex(indexPath: string): SemanticIndex {
     lastUpdatedAt: meta.lastUpdatedAt,
     repositoryRoot: meta.repositoryRoot,
     includePatch: meta.includePatch,
+    vectorDtype,
     ...(meta.checksum ? { checksum: meta.checksum } : {}),
     commits,
   };
@@ -314,8 +411,8 @@ function loadCompactIndex(indexPath: string): SemanticIndex {
 }
 
 export function loadIndex(indexPath: string): SemanticIndex {
-  const { metaPath, vectorPath } = compactPathsFromIndexPath(indexPath);
-  if (existsSync(metaPath) && existsSync(vectorPath)) {
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
+  if (existsSync(metaPath)) {
     return loadCompactIndex(indexPath);
   }
 
@@ -327,6 +424,7 @@ export function loadIndex(indexPath: string): SemanticIndex {
 export function saveIndex(indexPath: string, index: SemanticIndex): void {
   const indexWithChecksum: SemanticIndex = {
     ...index,
+    vectorDtype: index.vectorDtype ?? "f32",
     checksum: computeChecksum(index),
   };
 
@@ -339,10 +437,31 @@ export function getIndexSizeBytes(indexPath: string): number {
 }
 
 export function getVectorSizeBytes(indexPath: string): number {
-  const { vectorPath } = compactPathsFromIndexPath(indexPath);
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
+  if (!existsSync(metaPath)) {
+    return 0;
+  }
+
+  const meta = validateCompactMeta(JSON.parse(readFileSync(metaPath, "utf8")));
+  const vectorPath = path.join(path.dirname(metaPath), meta.vector.file);
   if (existsSync(vectorPath)) {
     return statSync(vectorPath).size;
   }
 
   return 0;
+}
+
+export function getVectorDtype(indexPath: string): VectorDtype {
+  const metaPath = compactMetaPathFromIndexPath(indexPath);
+  if (existsSync(metaPath)) {
+    const meta = validateCompactMeta(JSON.parse(readFileSync(metaPath, "utf8")));
+    return fromCompactDtype(meta.vector.dtype);
+  }
+
+  if (existsSync(indexPath)) {
+    const index = validateIndex(JSON.parse(readFileSync(indexPath, "utf8")));
+    return index.vectorDtype ?? "f32";
+  }
+
+  return "f32";
 }

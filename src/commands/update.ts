@@ -12,6 +12,7 @@ export interface UpdateOptions {
   batchSize: number;
   include: string[];
   exclude: string[];
+  vectorDtype?: "f32" | "f16";
 }
 
 const WINDOWED_RECOVERY_DAYS = 90;
@@ -109,6 +110,7 @@ export async function runUpdate(options: UpdateOptions): Promise<void> {
   saveIndex(paths.indexPath, {
     ...index,
     includePatch,
+    vectorDtype: options.vectorDtype ?? index.vectorDtype ?? "f32",
     lastUpdatedAt: new Date().toISOString(),
     commits: merged
   });

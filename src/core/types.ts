@@ -16,6 +16,8 @@ export interface IndexedCommit {
   embedding: number[];
 }
 
+export type VectorDtype = "f32" | "f16";
+
 export interface SemanticIndex {
   version: 1;
   modelName: string;
@@ -23,6 +25,7 @@ export interface SemanticIndex {
   lastUpdatedAt: string;
   repositoryRoot: string;
   includePatch: boolean;
+  vectorDtype?: VectorDtype;
   checksum?: string;
   commits: IndexedCommit[];
 }

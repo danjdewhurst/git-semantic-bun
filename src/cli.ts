@@ -8,7 +8,13 @@ import { runSearch } from "./commands/search.ts";
 import { runStats } from "./commands/stats.ts";
 import { runUpdate } from "./commands/update.ts";
 import { DEFAULT_BATCH_SIZE, DEFAULT_LIMIT, DEFAULT_MODEL } from "./core/constants.ts";
-import { parseDateOption, parseLimitOption, parseSearchOutputFormat, parseWeightOption } from "./core/parsing.ts";
+import {
+  parseDateOption,
+  parseLimitOption,
+  parseSearchOutputFormat,
+  parseVectorDtypeOption,
+  parseWeightOption,
+} from "./core/parsing.ts";
 
 function toDateParser(flagName: string): (value: string) => Date {
   return (value) => {
@@ -65,20 +71,38 @@ program
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
   .option("--exclude <glob>", "Exclude matching file paths (repeatable)", collectPattern, [])
-  .action(async (options: { full: boolean; model?: string; batchSize: string; include: string[]; exclude: string[] }) => {
-    const indexOptions: { full: boolean; batchSize: number; model?: string; include: string[]; exclude: string[] } = {
-      full: options.full,
-      batchSize: limitParser(options.batchSize),
-      include: options.include,
-      exclude: options.exclude,
-    };
+  .option("--vector-dtype <dtype>", "Compact vector dtype: f32 or f16", parseVectorDtypeOption, "f32")
+  .action(
+    async (options: {
+      full: boolean;
+      model?: string;
+      batchSize: string;
+      include: string[];
+      exclude: string[];
+      vectorDtype: "f32" | "f16";
+    }) => {
+      const indexOptions: {
+        full: boolean;
+        batchSize: number;
+        model?: string;
+        include: string[];
+        exclude: string[];
+        vectorDtype: "f32" | "f16";
+      } = {
+        full: options.full,
+        batchSize: limitParser(options.batchSize),
+        include: options.include,
+        exclude: options.exclude,
+        vectorDtype: options.vectorDtype,
+      };
 
     if (options.model !== undefined) {
       indexOptions.model = options.model;
     }
 
-    await runIndex(indexOptions);
-  });
+      await runIndex(indexOptions);
+    },
+  );
 
 program
   .command("search")
@@ -129,19 +153,37 @@ program
   .option("-b, --batch-size <size>", "Embedding batch size", String(DEFAULT_BATCH_SIZE))
   .option("--include <glob>", "Only include matching file paths (repeatable)", collectPattern, [])
   .option("--exclude <glob>", "Exclude matching file paths (repeatable)", collectPattern, [])
-  .action(async (options: { full?: boolean; batchSize: string; include: string[]; exclude: string[] }) => {
-    const updateOptions: { batchSize: number; full?: boolean; include: string[]; exclude: string[] } = {
-      batchSize: limitParser(options.batchSize),
-      include: options.include,
-      exclude: options.exclude,
-    };
+  .option("--vector-dtype <dtype>", "Compact vector dtype override: f32 or f16", parseVectorDtypeOption)
+  .action(
+    async (options: {
+      full?: boolean;
+      batchSize: string;
+      include: string[];
+      exclude: string[];
+      vectorDtype?: "f32" | "f16";
+    }) => {
+      const updateOptions: {
+        batchSize: number;
+        full?: boolean;
+        include: string[];
+        exclude: string[];
+        vectorDtype?: "f32" | "f16";
+      } = {
+        batchSize: limitParser(options.batchSize),
+        include: options.include,
+        exclude: options.exclude,
+      };
 
-    if (options.full !== undefined) {
-      updateOptions.full = options.full;
-    }
+      if (options.full !== undefined) {
+        updateOptions.full = options.full;
+      }
+      if (options.vectorDtype !== undefined) {
+        updateOptions.vectorDtype = options.vectorDtype;
+      }
 
-    await runUpdate(updateOptions);
-  });
+      await runUpdate(updateOptions);
+    },
+  );
 
 program
   .command("stats")

@@ -41,6 +41,16 @@ export function parseSearchOutputFormat(value: string): SearchOutputFormat {
   throw new Error(`Invalid format: ${value}. Allowed values: text, markdown, json.`);
 }
 
+export type VectorDtypeOption = "f32" | "f16";
+
+export function parseVectorDtypeOption(value: string): VectorDtypeOption {
+  if (value === "f32" || value === "f16") {
+    return value;
+  }
+
+  throw new Error(`Invalid vector dtype: ${value}. Allowed values: f32, f16.`);
+}
+
 export function parseWeightOption(value: string, flagName: string): number {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) {
