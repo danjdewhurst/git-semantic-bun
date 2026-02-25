@@ -38,7 +38,7 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 - [x] Benchmark baseline vs optimised path.
 
 ### 2.2 Index storage improvements
-- [ ] Design compact index format (binary vectors + JSON metadata sidecar).
+- [x] Design compact index format (binary vectors + JSON metadata sidecar).
 - [ ] Support migration from legacy `index.json`.
 - [ ] Add `gsb stats` fields for vector bytes and load time.
 
