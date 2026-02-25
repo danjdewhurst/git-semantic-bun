@@ -161,7 +161,7 @@ bun run build
 
 - Current roadmap: [ROADMAP.md](./ROADMAP.md)
 - Docs index: [docs/README.md](./docs/README.md)
-- v0.4 performance plan: [docs/plan/v0.4-performance.md](./docs/plan/v0.4-performance.md)
+- v0.4 performance plan: [docs/plans/v0.4-performance.md](./docs/plans/v0.4-performance.md)
 - Compact index details: [docs/compact-index.md](./docs/compact-index.md)
 
 ## Contributing
