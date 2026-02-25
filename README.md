@@ -1,185 +1,188 @@
+<div align="center">
+
 # git-semantic-bun
+
+**Search your git history by meaning, not just keywords.**
 
 [![CI](https://github.com/danjdewhurst/git-semantic-bun/actions/workflows/ci.yml/badge.svg)](https://github.com/danjdewhurst/git-semantic-bun/actions/workflows/ci.yml)
 [![GitHub release](https://img.shields.io/github/v/release/danjdewhurst/git-semantic-bun)](https://github.com/danjdewhurst/git-semantic-bun/releases)
 [![Licence: MIT](https://img.shields.io/badge/Licence-MIT-yellow.svg)](./LICENSE)
 
-Local semantic search for git history, built with Bun.
+<br />
 
-Describe what changed in plain English and retrieve relevant commits by meaning, not just exact keywords.
+```
+gsb search "fix race condition in auth token refresh"
+```
+
+</div>
+
+---
+
+## Why?
+
+`git log --grep` matches exact strings. Real questions are fuzzier:
+*"that commit where we fixed the retry backoff"* or *"the auth token race condition"*.
+
+**gsb** embeds every commit message into a vector space and ranks results by semantic similarity, BM25 lexical overlap, and recency — all locally, all offline.
+
+### Highlights
+
+- **Semantic + hybrid ranking** — weighted blend of vector similarity, lexical matching, and recency
+- **Runs entirely offline** — no API keys, no cloud; embeddings via [Transformers.js](https://huggingface.co/docs/transformers.js)
+- **Fast** — sub-millisecond lookups with optional ANN (HNSW) backend for 10k+ commit repos
+- **Incremental** — `gsb update` indexes only new commits; detects rebases and force-pushes
+- **Compact** — `f16` vector storage halves disk usage; sidecar index keeps `.git` tidy
+
+---
+
+## Quick start
+
+```bash
+# 1. Install
+bun add -g github:danjdewhurst/git-semantic-bun
+
+# 2. Initialise & index
+gsb init
+gsb index
+
+# 3. Search
+gsb search "fix race condition in auth token refresh"
+```
+
+> Prebuilt binaries for macOS, Linux, and Windows are available on the [Releases](https://github.com/danjdewhurst/git-semantic-bun/releases) page.
+
+---
 
 ## Install
 
 ### Prebuilt binaries (recommended)
 
-Download the latest release asset for your platform:
+Download the latest release asset for your platform from [**Releases**](https://github.com/danjdewhurst/git-semantic-bun/releases).
 
-- <https://github.com/danjdewhurst/git-semantic-bun/releases>
-
-### Install directly from GitHub with Bun (no npm)
+### From GitHub with Bun
 
 ```bash
 bun add -g github:danjdewhurst/git-semantic-bun
-
 gsb --help
 ```
 
-### Local development
+### From source
 
-Requirements:
-
-- Bun >= 1.3.9
-- a git repository
+Requirements: **Bun >= 1.3.9**, a git repository.
 
 ```bash
+git clone https://github.com/danjdewhurst/git-semantic-bun.git
+cd git-semantic-bun
 bun install
 bun run src/cli.ts --help
 ```
 
-Optional global link:
-
-```bash
-bun link
-gsb --help
-```
-
-## Quick start
-
-```bash
-gsb init
-gsb index
-gsb search "fix race condition in auth token refresh"
-```
+---
 
 ## Commands
+
+| Command | Description |
+|---|---|
+| [`gsb init`](#gsb-init) | Initialise index directories and model metadata |
+| [`gsb index`](#gsb-index) | Build semantic index from git history |
+| [`gsb search`](#gsb-search-query) | Semantic search over indexed commits |
+| [`gsb update`](#gsb-update) | Incrementally index new commits |
+| [`gsb serve`](#gsb-serve) | Warm search daemon (stdin/stdout) |
+| [`gsb stats`](#gsb-stats) | Show index and vector stats |
+| [`gsb doctor`](#gsb-doctor) | Check index health; `--fix` to repair |
+| [`gsb benchmark`](#gsb-benchmark-query) | Benchmark ranking performance |
 
 ### `gsb init`
 
 Initialises semantic index/cache directories and writes model metadata.
 
-- `-m, --model <name>` — embedding model (default: `Xenova/all-MiniLM-L6-v2`)
+```
+-m, --model <name>    embedding model (default: Xenova/all-MiniLM-L6-v2)
+```
 
 ### `gsb index`
 
-Builds semantic index from git history.
+Builds the semantic index from git history.
 
-Key options:
+```
+--full                    full re-index
+--model <name>            embedding model
+--batch-size <n>          max 256
+--include <glob>          repeatable
+--exclude <glob>          repeatable
+--vector-dtype <f32|f16>  f32 default; f16 halves storage
+```
 
-- `--full`
-- `--model <name>`
-- `--batch-size <n>` (max 256)
-- `--include <glob>` (repeatable)
-- `--exclude <glob>` (repeatable)
-- `--vector-dtype <f32|f16>`
-
-Notes:
-
-- `.gsbignore` patterns are applied automatically when present.
-- `f32` is default; `f16` reduces vector storage size.
+> `.gsbignore` patterns are applied automatically when present.
 
 ### `gsb search <query>`
 
 Runs semantic search over indexed commits.
 
-Filters:
+**Filters:**
 
-- `--author <name>`
-- `--after <date>`
-- `--before <date>`
-- `--file <path-substring>`
-- `-n, --limit <count>` (max 200)
+```
+--author <name>       filter by commit author
+--after <date>        commits after date
+--before <date>       commits before date
+--file <path>         path substring filter
+-n, --limit <count>   max results (max 200)
+```
 
-Ranking/output controls:
+**Ranking & output:**
 
-- `--semantic-weight <0..1>`
-- `--lexical-weight <0..1>`
-- `--recency-weight <0..1>`
-- `--no-recency-boost`
-- `--explain`
-- `--format <text|markdown|json>`
-- `--min-score <score>`
-- `--snippets`
-- `--snippet-lines <count>`
-- `--strategy <auto|exact|ann>`
+```
+--semantic-weight <0..1>    vector similarity weight
+--lexical-weight <0..1>     BM25 lexical weight
+--recency-weight <0..1>     recency boost weight
+--no-recency-boost          disable recency boosting
+--explain                   show score breakdown
+--format <text|md|json>     output format
+--min-score <score>         minimum score threshold
+--snippets                  show diff snippets
+--snippet-lines <count>     lines per snippet
+--strategy <auto|exact|ann> search strategy
+```
 
 ### `gsb serve`
 
-Runs a warm in-process search daemon (one query per stdin line) to avoid repeated cold starts.
+Warm in-process search daemon — one query per stdin line, avoids repeated cold starts.
 
 Interactive commands: `:reload`, `:quit` (or `:exit`).
-
-Supports the same filter and ranking flags as `gsb search` (except `--format`, `--explain`, `--snippets`, `--snippet-lines`), plus:
-
-- `--jsonl` — emit one compact JSON object per query line
-- `--strategy <auto|exact|ann>`
-
-Example:
 
 ```bash
 printf "token refresh race\nretry backoff\n:quit\n" | gsb serve --jsonl -n 5
 ```
 
+Supports all `search` filter and ranking flags, plus `--jsonl` for compact JSON output.
+
 ### `gsb update`
 
-Incrementally indexes commits newer than the latest indexed commit.
-
-Supports the same index shaping options as `gsb index`:
-
-- `--full`
-- `--batch-size <n>` (max 256)
-- `--include <glob>` / `--exclude <glob>`
-- `--vector-dtype <f32|f16>` — inherits from existing index when omitted
-
-Includes rewritten-history safety checks (rebase/force-push detection + recovery window).
+Incrementally indexes commits newer than the latest indexed commit. Supports the same options as `gsb index`. Includes rewritten-history safety checks (rebase/force-push detection + recovery window).
 
 ### `gsb stats`
 
-Shows index and vector stats (size, dtype, timestamps, load time).
+Shows index and vector stats — size, dtype, timestamps, load time.
 
 ### `gsb doctor`
 
-Checks index health and metadata/cache readiness.
-
-- `--fix` performs safe, non-destructive repairs where possible.
+Checks index health and metadata/cache readiness. `--fix` performs safe, non-destructive repairs.
 
 ### `gsb benchmark [query]`
 
 Benchmarks ranking path (baseline full-sort vs heap top-k).
 
-Options:
-
-- `-i, --iterations <count>` — benchmark iterations (default: 20)
-- `-n, --limit <count>` — max results (default: 10)
-- `--save` — append result to `.git/semantic-index/benchmarks.jsonl`
-- `--history` — print saved benchmark history (query becomes optional)
-- `--ann` — compare exact vs ANN search strategies (recall + speedup)
-
-Also accepts the same filter and ranking weight flags as `gsb search` (`--author`, `--after`, `--before`, `--file`, `--semantic-weight`, `--lexical-weight`, `--recency-weight`, `--no-recency-boost`).
-
-## Storage layout
-
-Primary files under `.git/semantic-index/`:
-
-- `index.json`
-- `index.meta.json`
-- `index.vec.f32` or `index.vec.f16`
-- `index.ann.usearch` (optional, built when `usearch` is installed)
-- `cache/`
-- `benchmarks.jsonl` (if benchmark history is enabled)
-
-## Optional ANN backend
-
-For very large repositories (>10k commits), an approximate nearest neighbour (HNSW) index can reduce semantic lookup to sub-millisecond:
-
-```bash
-bun add usearch   # optional dependency
-gsb index          # builds index.ann.usearch alongside the standard index
-gsb search "fix bug" --strategy ann    # force ANN
-gsb search "fix bug"                   # auto: uses ANN when available and >10k commits
-gsb benchmark "fix bug" --ann          # compare exact vs ANN
+```
+-i, --iterations <count>   iterations (default: 20)
+-n, --limit <count>        max results (default: 10)
+--save                     append to benchmarks.jsonl
+--history                  print saved history
+--ann                      compare exact vs ANN
 ```
 
-When `usearch` is not installed, all commands fall back to exact brute-force search transparently.
+Also accepts all `search` filter and ranking weight flags.
+
+---
 
 ## Examples
 
@@ -191,36 +194,73 @@ gsb search "token refresh race" --format markdown --explain
 gsb search "error handling in webhook retries" --format json --min-score 0.35
 ```
 
+---
+
+## Optional ANN backend
+
+For very large repositories (>10k commits), an approximate nearest-neighbour (HNSW) index reduces semantic lookup to sub-millisecond:
+
+```bash
+bun add usearch            # optional dependency
+gsb index                  # builds .ann.usearch alongside standard index
+gsb search "fix bug" --strategy ann   # force ANN
+gsb search "fix bug"                  # auto: ANN when available & >10k commits
+gsb benchmark "fix bug" --ann         # compare exact vs ANN recall + speedup
+```
+
+When `usearch` is not installed, all commands fall back to exact brute-force search transparently.
+
+---
+
+## Storage layout
+
+All data lives under `.git/semantic-index/` — nothing outside your repo:
+
+```
+.git/semantic-index/
+├── index.json              # commit metadata + embeddings map
+├── index.meta.json         # model info, timestamps, checksums
+├── index.vec.f32           # vectors (or .f16)
+├── index.ann.usearch       # optional ANN index
+├── cache/                  # embedding cache
+└── benchmarks.jsonl        # benchmark history (opt-in)
+```
+
+---
+
 ## Development
 
 ```bash
-bun run lint
-bun run typecheck
-bun test
-bun run perf:ci
-bun run build
-bun run toc
+bun install          # install dependencies
+bun run lint         # biome check
+bun run typecheck    # tsc --noEmit
+bun test             # run test suite
+bun run perf:ci      # performance regression suite
+bun run build        # compile to dist/
 ```
 
-`bun run toc` uses [`go-toc`](https://github.com/danjdewhurst/go-toc) to generate `TOC.md`.
-If `go-toc` is not installed, the project script downloads a local binary into `.tools/bin/`.
+### Performance CI
 
-Performance CI notes:
+- `bun run perf:ci` runs cold/warm/index-load suites against a synthetic dataset.
+- `.github/perf-baseline.json` defines baseline snapshots + allowed regression thresholds.
+- CI uploads `perf-artifacts/perf-snapshot.json` as a build artifact.
 
-- `bun run perf:ci` runs separate cold/warm/index-load suites against a synthetic dataset.
-- `.github/perf-baseline.json` defines baseline snapshot + allowed regression thresholds.
-- CI uploads `perf-artifacts/perf-snapshot.json` as an artifact for each run.
+---
 
 ## Docs
 
-- Current roadmap: [ROADMAP.md](./ROADMAP.md)
-- Docs index: [docs/README.md](./docs/README.md)
-- v0.4 performance plan: [docs/plans/v0.4-performance.md](./docs/plans/v0.4-performance.md)
-- Compact index details: [docs/compact-index.md](./docs/compact-index.md)
+| Document | Description |
+|---|---|
+| [ROADMAP.md](./ROADMAP.md) | Current priorities and version history |
+| [docs/README.md](./docs/README.md) | Documentation index |
+| [docs/plans/v0.4-performance.md](./docs/plans/v0.4-performance.md) | v0.4 performance plan |
+| [docs/compact-index.md](./docs/compact-index.md) | Compact index format details |
+
+---
 
 ## Contributing
 
-PRs welcome. Please use conventional commits and include tests for behavioural changes.
+PRs welcome. Please use [conventional commits](https://www.conventionalcommits.org/) and include tests for behavioural changes.
 
 ## Licence
 
