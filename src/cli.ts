@@ -6,7 +6,7 @@ import { runSearch } from "./commands/search.ts";
 import { runStats } from "./commands/stats.ts";
 import { runUpdate } from "./commands/update.ts";
 import { DEFAULT_BATCH_SIZE, DEFAULT_LIMIT, DEFAULT_MODEL } from "./core/constants.ts";
-import { parseDateOption, parseLimitOption, parseSearchOutputFormat } from "./core/parsing.ts";
+import { parseDateOption, parseLimitOption, parseSearchOutputFormat, parseWeightOption } from "./core/parsing.ts";
 
 function toDateParser(flagName: string): (value: string) => Date {
   return (value) => {
@@ -24,6 +24,16 @@ function limitParser(value: string): number {
   } catch (error) {
     throw new InvalidArgumentError((error as Error).message);
   }
+}
+
+function toWeightParser(flagName: string): (value: string) => number {
+  return (value) => {
+    try {
+      return parseWeightOption(value, flagName);
+    } catch (error) {
+      throw new InvalidArgumentError((error as Error).message);
+    }
+  };
 }
 
 const program = new Command();
@@ -70,6 +80,11 @@ program
   .option("--file <path>", "Filter commits touching file path substring")
   .option("-n, --limit <count>", "Max results", limitParser, DEFAULT_LIMIT)
   .option("--format <format>", "Output format: text, markdown, json", parseSearchOutputFormat, "text")
+  .option("--explain", "Show score component breakdown", false)
+  .option("--semantic-weight <weight>", "Semantic score weight (0..1)", toWeightParser("--semantic-weight"), 0.75)
+  .option("--lexical-weight <weight>", "Lexical score weight (0..1)", toWeightParser("--lexical-weight"), 0.2)
+  .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
+  .option("--no-recency-boost", "Disable recency scoring boost")
   .action(
     async (
       query: string,
@@ -80,6 +95,11 @@ program
         file?: string;
         limit: number;
         format: "text" | "markdown" | "json";
+        explain: boolean;
+        semanticWeight: number;
+        lexicalWeight: number;
+        recencyWeight: number;
+        recencyBoost: boolean;
       }
     ) => {
       await runSearch(query, options);

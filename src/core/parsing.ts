@@ -40,3 +40,16 @@ export function parseSearchOutputFormat(value: string): SearchOutputFormat {
 
   throw new Error(`Invalid format: ${value}. Allowed values: text, markdown, json.`);
 }
+
+export function parseWeightOption(value: string, flagName: string): number {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Invalid ${flagName} weight: ${value}. Weight must be a number.`);
+  }
+
+  if (parsed < 0 || parsed > 1) {
+    throw new Error(`Invalid ${flagName} weight: ${value}. Weight must be between 0 and 1.`);
+  }
+
+  return parsed;
+}

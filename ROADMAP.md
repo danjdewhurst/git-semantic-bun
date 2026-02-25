@@ -22,11 +22,11 @@ Practical roadmap for improving retrieval quality, scalability, and developer er
 **Success criteria:** better top-5 relevance on representative queries without regression in speed >15%.
 
 ### 1.2 Add hybrid scoring (semantic + lexical + recency)
-- [ ] Introduce lexical term overlap/BM25-style score.
-- [ ] Add optional recency boost.
-- [ ] Implement weighted final score (configurable defaults).
-- [ ] Add `--explain` output showing score components.
-- [ ] Add ranking tests with fixed fixtures and expected order.
+- [x] Introduce lexical term overlap/BM25-style score.
+- [x] Add optional recency boost.
+- [x] Implement weighted final score (configurable defaults).
+- [x] Add `--explain` output showing score components.
+- [x] Add ranking tests with fixed fixtures and expected order.
 
 **Success criteria:** improved precision for exact-token queries while preserving semantic wins.
 

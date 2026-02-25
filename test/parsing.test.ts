@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { parseGitLogOutput } from "../src/core/git.ts";
-import { parseDateOption, parseLimitOption, parseSearchOutputFormat } from "../src/core/parsing.ts";
+import { parseDateOption, parseLimitOption, parseSearchOutputFormat, parseWeightOption } from "../src/core/parsing.ts";
 
 describe("parsing helpers", () => {
   it("parses valid date option", () => {
@@ -29,6 +29,15 @@ describe("parsing helpers", () => {
 
   it("rejects invalid output format option", () => {
     expect(() => parseSearchOutputFormat("yaml")).toThrow();
+  });
+
+  it("parses weight option", () => {
+    expect(parseWeightOption("0.25", "--semantic-weight")).toBe(0.25);
+  });
+
+  it("rejects invalid weight option", () => {
+    expect(() => parseWeightOption("2", "--semantic-weight")).toThrow();
+    expect(() => parseWeightOption("x", "--semantic-weight")).toThrow();
   });
 });
 

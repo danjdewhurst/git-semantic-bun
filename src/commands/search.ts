@@ -4,6 +4,7 @@ import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import type { SearchOutputFormat } from "../core/parsing.ts";
+import { lexicalScore, normaliseWeights, recencyScore, type ScoreWeights } from "../core/ranking.ts";
 import { cosineSimilarity } from "../core/similarity.ts";
 import type { SearchFilters } from "../core/types.ts";
 
@@ -14,11 +15,19 @@ export interface SearchOptions {
   file?: string;
   limit?: number;
   format?: SearchOutputFormat;
+  explain?: boolean;
+  semanticWeight?: number;
+  lexicalWeight?: number;
+  recencyWeight?: number;
+  recencyBoost?: boolean;
 }
 
 interface RankedResult {
   rank: number;
   score: number;
+  semanticScore: number;
+  lexicalScore: number;
+  recencyScore: number;
   hash: string;
   date: string;
   author: string;
@@ -30,9 +39,16 @@ interface SearchOutputPayload {
   query: string;
   model: string;
   format: SearchOutputFormat;
+  explain: boolean;
   totalIndexedCommits: number;
   matchedCommits: number;
   returnedResults: number;
+  scoreWeights: {
+    semantic: number;
+    lexical: number;
+    recency: number;
+    recencyBoostEnabled: boolean;
+  };
   filters: {
     author?: string;
     after?: string;
@@ -47,6 +63,8 @@ function buildPayload(
   query: string,
   model: string,
   format: SearchOutputFormat,
+  explain: boolean,
+  scoreWeights: ScoreWeights,
   totalIndexedCommits: number,
   matchedCommits: number,
   limit: number,
@@ -74,9 +92,11 @@ function buildPayload(
     query,
     model,
     format,
+    explain,
     totalIndexedCommits,
     matchedCommits,
     returnedResults: ranked.length,
+    scoreWeights,
     filters: payloadFilters,
     results: ranked,
   };
@@ -87,12 +107,22 @@ function renderTextOutput(payload: SearchOutputPayload): void {
   console.log(
     `Model: ${payload.model} · Indexed: ${payload.totalIndexedCommits} · Matched: ${payload.matchedCommits} · Showing: ${payload.returnedResults}`,
   );
+  if (payload.explain) {
+    console.log(
+      `Weights: semantic=${payload.scoreWeights.semantic.toFixed(2)}, lexical=${payload.scoreWeights.lexical.toFixed(2)}, recency=${payload.scoreWeights.recency.toFixed(2)}${payload.scoreWeights.recencyBoostEnabled ? "" : " (recency boost disabled)"}`,
+    );
+  }
   console.log("");
 
   for (const result of payload.results) {
     const scorePct = (result.score * 100).toFixed(1);
     console.log(`${result.rank}. ${result.message}`);
     console.log(`   ${result.hash} · ${result.author} · ${result.date} · score ${scorePct}%`);
+    if (payload.explain) {
+      console.log(
+        `   components: semantic ${(result.semanticScore * 100).toFixed(1)}% · lexical ${(result.lexicalScore * 100).toFixed(1)}% · recency ${(result.recencyScore * 100).toFixed(1)}%`,
+      );
+    }
     if (result.files.length > 0) {
       console.log(`   files: ${result.files.join(", ")}`);
     }
@@ -108,6 +138,11 @@ function renderMarkdownOutput(payload: SearchOutputPayload): void {
   console.log(`- **Indexed commits:** ${payload.totalIndexedCommits}`);
   console.log(`- **Filter match count:** ${payload.matchedCommits}`);
   console.log(`- **Returned results:** ${payload.returnedResults}`);
+  if (payload.explain) {
+    console.log(
+      `- **Weights:** semantic=${payload.scoreWeights.semantic.toFixed(2)}, lexical=${payload.scoreWeights.lexical.toFixed(2)}, recency=${payload.scoreWeights.recency.toFixed(2)}${payload.scoreWeights.recencyBoostEnabled ? "" : " (disabled)"}`,
+    );
+  }
   console.log("");
 
   for (const result of payload.results) {
@@ -117,7 +152,12 @@ function renderMarkdownOutput(payload: SearchOutputPayload): void {
     console.log(`- **Commit:** \`${result.hash}\``);
     console.log(`- **Author:** ${result.author}`);
     console.log(`- **Date:** ${result.date}`);
-    console.log(`- **Similarity:** ${scorePct}%`);
+    console.log(`- **Score:** ${scorePct}%`);
+    if (payload.explain) {
+      console.log(`- **Semantic:** ${(result.semanticScore * 100).toFixed(1)}%`);
+      console.log(`- **Lexical:** ${(result.lexicalScore * 100).toFixed(1)}%`);
+      console.log(`- **Recency:** ${(result.recencyScore * 100).toFixed(1)}%`);
+    }
     if (result.files.length > 0) {
       console.log(`- **Files:** ${result.files.map((file) => `\`${file}\``).join(", ")}`);
     }
@@ -135,6 +175,13 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
 
   const format = options.format ?? "text";
   const limit = options.limit ?? DEFAULT_LIMIT;
+  const explain = options.explain ?? false;
+  const scoreWeights = normaliseWeights({
+    semantic: options.semanticWeight ?? 0.75,
+    lexical: options.lexicalWeight ?? 0.2,
+    recency: options.recencyBoost === false ? 0 : (options.recencyWeight ?? 0.05),
+    recencyBoostEnabled: options.recencyBoost !== false,
+  });
 
   const filters: SearchFilters = {};
   if (options.author !== undefined) {
@@ -164,14 +211,25 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
   }
 
   const rankedResults: RankedResult[] = filtered
-    .map((commit) => ({
-      hash: commit.hash,
-      author: commit.author,
-      date: commit.date,
-      message: commit.message,
-      files: commit.files,
-      score: cosineSimilarity(queryEmbedding, commit.embedding),
-    }))
+    .map((commit) => {
+      const semanticScore = cosineSimilarity(queryEmbedding, commit.embedding);
+      const lexical = lexicalScore(query, commit.message, commit.files);
+      const recency = scoreWeights.recencyBoostEnabled ? recencyScore(commit.date) : 0;
+      const score =
+        semanticScore * scoreWeights.semantic + lexical * scoreWeights.lexical + recency * scoreWeights.recency;
+
+      return {
+        hash: commit.hash,
+        author: commit.author,
+        date: commit.date,
+        message: commit.message,
+        files: commit.files,
+        score,
+        semanticScore,
+        lexicalScore: lexical,
+        recencyScore: recency,
+      };
+    })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
     .map((result, indexOfResult) => ({
@@ -188,6 +246,8 @@ export async function runSearch(query: string, options: SearchOptions): Promise<
     query,
     index.modelName,
     format,
+    explain,
+    scoreWeights,
     index.commits.length,
     filtered.length,
     limit,
