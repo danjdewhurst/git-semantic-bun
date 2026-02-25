@@ -22,6 +22,7 @@ describe("runDoctorChecks", () => {
         compactMetaPath: path.join(semanticDir, "index.meta.json"),
         compactVectorPath: path.join(semanticDir, "index.vec.f32"),
         metadataPath: path.join(cacheDir, "metadata.json"),
+        benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl"),
       };
 
       writeFileSync(paths.indexPath, "{}\n", "utf8");

@@ -1,10 +1,15 @@
+import { benchmarkRanking } from "../core/benchmark.ts";
+import {
+  loadBenchmarkHistory,
+  renderBenchmarkHistorySummary,
+  saveBenchmarkHistory,
+} from "../core/benchmark-history.ts";
 import { createEmbedder } from "../core/embeddings.ts";
 import { applyFilters } from "../core/filter.ts";
 import { loadIndex } from "../core/index-store.ts";
 import { resolveRepoPaths } from "../core/paths.ts";
 import { bm25Scores, combineScores, normaliseWeights, recencyScore } from "../core/ranking.ts";
 import { cosineSimilarityUnit, normaliseVector } from "../core/similarity.ts";
-import { benchmarkRanking } from "../core/benchmark.ts";
 
 export interface BenchmarkOptions {
   author?: string;
@@ -17,10 +22,19 @@ export interface BenchmarkOptions {
   lexicalWeight?: number;
   recencyWeight?: number;
   recencyBoost?: boolean;
+  save?: boolean;
+  history?: boolean;
 }
 
 export async function runBenchmark(query: string, options: BenchmarkOptions): Promise<void> {
   const paths = resolveRepoPaths();
+
+  if (options.history) {
+    const entries = loadBenchmarkHistory(paths.benchmarkHistoryPath);
+    console.log(renderBenchmarkHistorySummary(entries));
+    return;
+  }
+
   const index = loadIndex(paths.indexPath);
 
   const filters: {
@@ -89,4 +103,18 @@ export async function runBenchmark(query: string, options: BenchmarkOptions): Pr
   console.log(`Baseline (full sort): ${result.baselineMs.toFixed(3)} ms`);
   console.log(`Optimised (heap top-k): ${result.optimisedMs.toFixed(3)} ms`);
   console.log(`Speedup: ${result.speedup.toFixed(2)}x`);
+
+  if (options.save) {
+    saveBenchmarkHistory(paths.benchmarkHistoryPath, {
+      timestamp: new Date().toISOString(),
+      query,
+      candidates: scored.length,
+      limit: options.limit,
+      iterations: options.iterations,
+      baselineMs: result.baselineMs,
+      optimisedMs: result.optimisedMs,
+      speedup: result.speedup,
+    });
+    console.log(`Saved benchmark run to ${paths.benchmarkHistoryPath}`);
+  }
 }

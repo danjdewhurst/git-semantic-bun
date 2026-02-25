@@ -160,7 +160,7 @@ program
 program
   .command("benchmark")
   .description("Benchmark baseline full sort vs optimised heap top-k ranking")
-  .argument("<query>", "Natural language query")
+  .argument("[query]", "Natural language query")
   .option("--author <author>", "Filter by author substring")
   .option("--after <date>", "Filter commits after this date", toDateParser("--after"))
   .option("--before <date>", "Filter commits before this date", toDateParser("--before"))
@@ -171,9 +171,11 @@ program
   .option("--lexical-weight <weight>", "Lexical score weight (0..1)", toWeightParser("--lexical-weight"), 0.2)
   .option("--recency-weight <weight>", "Recency score weight (0..1)", toWeightParser("--recency-weight"), 0.05)
   .option("--no-recency-boost", "Disable recency scoring boost")
+  .option("--save", "Save benchmark result to history log", false)
+  .option("--history", "Show saved benchmark history", false)
   .action(
     async (
-      query: string,
+      query: string | undefined,
       options: {
         author?: string;
         after?: Date;
@@ -185,9 +187,15 @@ program
         lexicalWeight: number;
         recencyWeight: number;
         recencyBoost: boolean;
+        save: boolean;
+        history: boolean;
       },
     ) => {
-      await runBenchmark(query, options);
+      if (!options.history && (!query || query.trim().length === 0)) {
+        throw new InvalidArgumentError("Query is required unless --history is used.");
+      }
+
+      await runBenchmark(query ?? "", options);
     },
   );
 

@@ -176,9 +176,12 @@ Shows index count, model, size, and timestamps.
 
 Validates index files, compact sidecars, model metadata, and cache directory readiness.
 
-### `gsb benchmark <query> [filters]`
+### `gsb benchmark [query] [filters]`
 
 Benchmarks ranking performance (baseline full-sort vs optimised heap top-k) using the current index.
+
+- `--save` appends results to `.git/semantic-index/benchmarks.jsonl`
+- `--history` shows recent saved benchmark runs (query optional in this mode)
 
 ## Examples
 

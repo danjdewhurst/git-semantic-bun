@@ -11,6 +11,7 @@ export interface RepoPaths {
   compactMetaPath: string;
   compactVectorPath: string;
   metadataPath: string;
+  benchmarkHistoryPath: string;
 }
 
 export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
@@ -36,7 +37,8 @@ export function resolveRepoPaths(cwd: string = process.cwd()): RepoPaths {
     indexPath: path.join(semanticDir, "index.json"),
     compactMetaPath: path.join(semanticDir, "index.meta.json"),
     compactVectorPath: path.join(semanticDir, "index.vec.f32"),
-    metadataPath: path.join(cacheDir, "metadata.json")
+    metadataPath: path.join(cacheDir, "metadata.json"),
+    benchmarkHistoryPath: path.join(semanticDir, "benchmarks.jsonl")
   };
 }
 
