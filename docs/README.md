@@ -2,26 +2,26 @@
 
 - 📁 **plans/**
   - 📄 [plugin-system.md](plans/plugin-system.md)
-    > 💬 The project is a ~2,500-line CLI with clean separation between commands () and core logic (). It already has natural...
+    > 💬 The project is a ~2,500-line CLI with clean separation between commands (src/commands/) and core logic (src/core/). It...
   - 📄 [v0.3.0.md](plans/v0.3.0.md)
-    > 💬 Status: Delivered in .
+    > 💬 Status: Delivered in v0.3.0.
   - 📄 [v0.4-performance.md](plans/v0.4-performance.md)
     > 💬 Goal: improve end-to-end speed (cold start, warm query latency, large-repo scalability) without sacrificing result...
 - 📄 [architecture.md](architecture.md)
-  > 💬 src/ ├── cli.ts # Entry point — Commander program definition ├── index.ts # Public re-exports ├──...
+  > 💬 git-semantic-bun is structured as a CLI application with a clean separation between command handlers (src/commands/)...
 - 📄 [ci-and-releases.md](ci-and-releases.md)
-  > 💬 CI runs on every push to and on pull requests via .
+  > 💬 CI runs on every push to main and on pull requests via .github/workflows/ci.yml.
 - 📄 [cli-reference.md](cli-reference.md)
-  > 💬 All commands are invoked as .
+  > 💬 All commands are invoked as gsb <command> [options].
 - 📄 [compact-index.md](compact-index.md)
-  > 💬 { "version": 2, "modelName": "Xenova/all-MiniLM-L6-v2", "createdAt": "2026-02-25T00:00:00.000Z", "lastUpdatedAt":...
+  > 💬 git-semantic-bun stores index data under .git/semantic-index/.
 - 📄 [getting-started.md](getting-started.md)
-  > 💬 git clone https://github.com/danjdewhurst/git-semantic-bun.git cd git-semantic-bun bun install bun link
+  > 💬 Download the binary for your platform from the GitHub Releases page. Available targets:
 - 📄 [plugins.md](plugins.md)
   > 💬 gsb supports an extensible plugin system. Plugins can add custom embedders, search strategies, scoring signals, output...
 - 📄 [search-ranking.md](search-ranking.md)
-  > 💬 The query and each commit's embedding text are encoded into vectors using the same Transformers.js model. Similarity is...
+  > 💬 gsb search uses a hybrid ranking system that combines three scoring signals into a single weighted score per commit.
 - 📄 [serve-daemon.md](serve-daemon.md)
-  > 💬 gsb serve [options]
+  > 💬 gsb serve runs a warm, in-process search daemon that keeps the embedding model and index loaded in memory. This...
 - 📄 [testing.md](testing.md)
-  > 💬 bun test
+  > 💬 All tests use Bun's built-in test runner. No additional test framework is needed.
