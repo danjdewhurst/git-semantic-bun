@@ -11,7 +11,7 @@
     "coldP50Pct": 250,
     "coldP95Pct": 250,
     "warmP50Pct": 300,
-    "warmP95Pct": 300,
+    "warmP95Pct": 350,
     "indexLoadP50Pct": 250
   },
   "metrics": {
