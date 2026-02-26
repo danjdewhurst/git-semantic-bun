@@ -7,6 +7,9 @@
     > 💬 Status: Delivered in v0.3.0.
   - 📄 [v0.4-performance.md](plans/v0.4-performance.md)
     > 💬 Goal: improve end-to-end speed (cold start, warm query latency, large-repo scalability) without sacrificing result...
+- 📁 **reviews/**
+  - 📄 [minimax-m2-5.md](reviews/minimax-m2-5.md)
+    > 💬 The LRU limit is good, but if you run gsb serve for days, it caches only by checksum — which may be the same index....
 - 📄 [architecture.md](architecture.md)
   > 💬 git-semantic-bun is structured as a CLI application with a clean separation between command handlers (src/commands/)...
 - 📄 [ci-and-releases.md](ci-and-releases.md)
