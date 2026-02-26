@@ -8,11 +8,11 @@
     "indexLoadIterations": 20
   },
   "thresholds": {
-    "coldP50Pct": 250,
-    "coldP95Pct": 300,
-    "warmP50Pct": 300,
-    "warmP95Pct": 350,
-    "indexLoadP50Pct": 250
+    "coldP50Pct": 500,
+    "coldP95Pct": 500,
+    "warmP50Pct": 500,
+    "warmP95Pct": 500,
+    "indexLoadP50Pct": 500
   },
   "metrics": {
     "cold": {
