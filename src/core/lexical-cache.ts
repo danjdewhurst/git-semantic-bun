@@ -1,3 +1,4 @@
+import { BM25_B, BM25_K1, termFrequency, tokenizeTerms } from "./bm25.ts";
 import type { IndexedCommit, SemanticIndex } from "./types.ts";
 
 interface CachedDocument {
@@ -14,22 +15,6 @@ export interface LexicalCache {
 
 const INDEX_CACHE_LIMIT = 4;
 const lexicalCacheByChecksum = new Map<string, LexicalCache>();
-
-function tokenizeTerms(value: string): string[] {
-  return value
-    .toLowerCase()
-    .split(/[^a-z0-9]+/g)
-    .map((token) => token.trim())
-    .filter((token) => token.length >= 2);
-}
-
-function termFrequency(tokens: readonly string[]): Map<string, number> {
-  const frequencies = new Map<string, number>();
-  for (const token of tokens) {
-    frequencies.set(token, (frequencies.get(token) ?? 0) + 1);
-  }
-  return frequencies;
-}
 
 export function buildLexicalCache(commits: readonly IndexedCommit[]): LexicalCache {
   const docs = new Map<string, CachedDocument>();
@@ -90,8 +75,8 @@ export function bm25ScoresFromCache(
     return new Map();
   }
 
-  const k1 = 1.5;
-  const b = 0.75;
+  const k1 = BM25_K1;
+  const b = BM25_B;
 
   const scores = new Map<string, number>();
   let maxScore = 0;

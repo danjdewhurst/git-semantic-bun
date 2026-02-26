@@ -51,7 +51,7 @@ interface CliOptions {
 const DEFAULT_DATASET = {
   commitCount: 5000,
   dimension: 32,
-  coldIterations: 9,
+  coldIterations: 15,
   warmIterations: 30,
   indexLoadIterations: 20,
 };

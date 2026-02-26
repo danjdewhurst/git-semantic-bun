@@ -66,6 +66,14 @@ function computeChecksum(index: SemanticIndex): string {
   return hash.digest("hex");
 }
 
+/**
+ * Converts an IEEE 754 float32 value to float16 (half-precision) representation.
+ *
+ * IEEE 754 float32 layout: 1 sign bit | 8 exponent bits (bias 127) | 23 mantissa bits
+ * IEEE 754 float16 layout: 1 sign bit | 5 exponent bits (bias 15)  | 10 mantissa bits
+ *
+ * Returns the float16 value as a uint16 integer for storage in a Uint16Array.
+ */
 function float32ToFloat16(value: number): number {
   const floatView = new Float32Array(1);
   const intView = new Uint32Array(floatView.buffer);
@@ -76,27 +84,38 @@ function float32ToFloat16(value: number): number {
   const exponent = (x >>> 23) & 0xff;
   const mantissa = x & 0x7fffff;
 
+  // Inf/NaN: exponent all-ones in f32 → preserve as f16 Inf (0x7c00) or NaN (0x7e00)
   if (exponent === 0xff) {
     return (sign << 15) | (mantissa ? 0x7e00 : 0x7c00);
   }
 
+  // Re-bias exponent from f32 (bias 127) to f16 (bias 15)
   const halfExponent = exponent - 127 + 15;
+
+  // Overflow: value too large for f16 → clamp to ±Inf
   if (halfExponent >= 0x1f) {
     return (sign << 15) | 0x7c00;
   }
 
+  // Underflow: value too small → encode as subnormal or flush to ±0
   if (halfExponent <= 0) {
     if (halfExponent < -10) {
       return sign << 15;
     }
 
+    // Subnormal: restore implicit leading 1 and shift right to fit reduced precision
     const subnormal = (mantissa | 0x800000) >> (1 - halfExponent + 13);
     return (sign << 15) | subnormal;
   }
 
+  // Normal case: pack sign, re-biased exponent, and truncated mantissa (23 → 10 bits)
   return (sign << 15) | (halfExponent << 10) | (mantissa >> 13);
 }
 
+/**
+ * Converts a float16 (half-precision) uint16 representation back to a float32 value.
+ * Reverses the encoding performed by float32ToFloat16.
+ */
 function float16ToFloat32(value: number): number {
   const sign = (value & 0x8000) << 16;
   const exponent = (value >> 10) & 0x1f;
@@ -105,8 +124,10 @@ function float16ToFloat32(value: number): number {
   let bits: number;
   if (exponent === 0) {
     if (mantissa === 0) {
+      // ±0
       bits = sign;
     } else {
+      // Subnormal f16 → normalise to f32 by shifting mantissa until the implicit 1 appears
       let e = -1;
       let m = mantissa;
       while ((m & 0x0400) === 0) {
@@ -117,8 +138,10 @@ function float16ToFloat32(value: number): number {
       bits = sign | ((e + 127) << 23) | (m << 13);
     }
   } else if (exponent === 0x1f) {
+    // Inf/NaN: map to f32 equivalents
     bits = sign | 0x7f800000 | (mantissa << 13);
   } else {
+    // Normal: re-bias exponent from f16 (bias 15) to f32 (bias 127), expand mantissa (10 → 23 bits)
     bits = sign | ((exponent - 15 + 127) << 23) | (mantissa << 13);
   }
 

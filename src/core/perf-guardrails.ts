@@ -3,6 +3,7 @@ export interface PerfSuiteSummary {
   minMs: number;
   maxMs: number;
   meanMs: number;
+  stddevMs: number;
   p50Ms: number;
   p95Ms: number;
 }
@@ -45,6 +46,9 @@ export function summariseSamples(samples: readonly number[]): PerfSuiteSummary {
   const total = sorted.reduce((sum, item) => sum + item, 0);
   const meanMs = total / count;
 
+  const variance = sorted.reduce((sum, item) => sum + (item - meanMs) ** 2, 0) / count;
+  const stddevMs = Math.sqrt(variance);
+
   const percentile = (p: number): number => {
     const index = Math.ceil((p / 100) * count) - 1;
     const safeIndex = Math.max(0, Math.min(count - 1, index));
@@ -56,6 +60,7 @@ export function summariseSamples(samples: readonly number[]): PerfSuiteSummary {
     minMs: roundMs(minMs),
     maxMs: roundMs(maxMs),
     meanMs: roundMs(meanMs),
+    stddevMs: roundMs(stddevMs),
     p50Ms: roundMs(percentile(50)),
     p95Ms: roundMs(percentile(95)),
   };
