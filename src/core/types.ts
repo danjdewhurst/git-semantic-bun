@@ -14,6 +14,8 @@ export interface IndexedCommit {
   message: string;
   files: string[];
   embedding: number[];
+  /** Position in the original full index (used for ANN index mapping) */
+  originalIndex?: number;
 }
 
 export type VectorDtype = "f32" | "f16";

@@ -268,6 +268,17 @@ export async function executeSearch(
     }
   }
 
+  // Map each filtered commit to its original position in the full index for ANN key mapping
+  for (let i = 0; i < filtered.length; i += 1) {
+    const commit = filtered[i];
+    if (!commit) continue;
+    // Find the position of this commit in the original full index
+    const originalIndex = index.commits.findIndex((c) => c.hash === commit.hash);
+    if (originalIndex >= 0) {
+      commit.originalIndex = originalIndex;
+    }
+  }
+
   if (filtered.length === 0) {
     return null;
   }
