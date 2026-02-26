@@ -91,7 +91,15 @@ export async function createEmbedder(modelName: string, cacheDir: string): Promi
   env.cacheDir = path.resolve(cacheDir);
   env.allowLocalModels = true;
 
-  const extractor = (await pipeline("feature-extraction", modelName)) as unknown as Extractor;
+  let extractor: Extractor;
+  try {
+    extractor = (await pipeline("feature-extraction", modelName)) as unknown as Extractor;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to load embedding model "${modelName}". This may be caused by a network issue, insufficient disk space, or an invalid model name. Cache directory: ${path.resolve(cacheDir)}\nOriginal error: ${message}`,
+    );
+  }
 
   return {
     modelName,
