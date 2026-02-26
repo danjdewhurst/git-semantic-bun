@@ -268,14 +268,18 @@ export async function executeSearch(
     }
   }
 
-  // Map each filtered commit to its original position in the full index for ANN key mapping
-  for (let i = 0; i < filtered.length; i += 1) {
-    const commit = filtered[i];
-    if (!commit) continue;
-    // Find the position of this commit in the original full index
-    const originalIndex = index.commits.findIndex((c) => c.hash === commit.hash);
-    if (originalIndex >= 0) {
-      commit.originalIndex = originalIndex;
+  // Map each filtered commit to its original position in the full index for ANN key mapping.
+  // Only needed when filtering actually reduced the set — otherwise positions are unchanged.
+  if (filtered.length < index.commits.length) {
+    const hashToIndex = new Map<string, number>();
+    for (let i = 0; i < index.commits.length; i += 1) {
+      const c = index.commits[i];
+      if (c) hashToIndex.set(c.hash, i);
+    }
+    for (const commit of filtered) {
+      if (!commit) continue;
+      const idx = hashToIndex.get(commit.hash);
+      if (idx !== undefined) commit.originalIndex = idx;
     }
   }
 
