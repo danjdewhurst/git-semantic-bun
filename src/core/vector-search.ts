@@ -60,9 +60,14 @@ export class AnnSearch implements VectorSearchStrategy {
     candidates: readonly IndexedCommit[],
     limit: number,
   ): SemanticCandidate[] {
-    const candidateSet = new Set<number>();
+    // Build mapping from global index (ANN keys) to filtered index (position in candidates array)
+    // Each candidate has originalIndex set to its position in the full index
+    const globalToFiltered = new Map<number, number>();
     for (let i = 0; i < candidates.length; i += 1) {
-      candidateSet.add(i);
+      const commit = candidates[i];
+      if (commit === undefined) continue;
+      const globalIndex = commit.originalIndex ?? i;
+      globalToFiltered.set(globalIndex, i);
     }
 
     const filteredRatio = candidates.length / Math.max(1, this.handle.size());
@@ -78,10 +83,11 @@ export class AnnSearch implements VectorSearchStrategy {
 
     const results: SemanticCandidate[] = [];
     for (let i = 0; i < keys.length; i += 1) {
-      const key = Number(keys[i]);
-      if (candidateSet.has(key)) {
+      const globalKey = Number(keys[i]);
+      const filteredIndex = globalToFiltered.get(globalKey);
+      if (filteredIndex !== undefined) {
         // usearch ip metric returns distance = 1 - similarity for normalised vectors
-        results.push({ index: key, score: 1 - (distances[i] ?? 0) });
+        results.push({ index: filteredIndex, score: 1 - (distances[i] ?? 0) });
       }
     }
 
